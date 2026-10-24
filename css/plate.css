@@ -24,7 +24,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
     linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 12px 12px,
     linear-gradient(var(--grid-strong) 1px, transparent 1px) 0 0 / 60px 60px,
     linear-gradient(90deg, var(--grid-strong) 1px, transparent 1px) 0 0 / 60px 60px; }
-.paper .glyph { position: absolute; left: 470px; top: 20px; font: 800 640px/1 "Barlow Condensed", sans-serif; color: var(--glyph); letter-spacing: -0.02em; }
+.paper .glyph { position: absolute; left: 780px; top: 20px; font: italic 300 640px/1 "Barlow", serif; color: var(--glyph); letter-spacing: -0.02em; }
 .paper .glyph small { font-size: 90px; vertical-align: top; margin-left: 6px; }
 
 /* print furniture */
@@ -50,7 +50,7 @@ html.rec .head-lang { display: none; }               /* one render per language:
 .head-lang svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.1; }
 
 /* left column */
-.col-left { left: 14px; top: 48px; width: 300px; height: 436px; padding: 12px 16px; }
+.col-left { left: 14px; top: 48px; width: 300px; height: 418px; padding: 12px 16px; }
 .kicker { font-size: 10.5px; color: var(--accent); letter-spacing: 0.06em; }
 .title { margin-top: 2px; white-space: nowrap; font: 800 66px/0.9 "Barlow Condensed", "Noto Sans SC", sans-serif; letter-spacing: -0.005em; }
 html[lang="zh"] .title { font-size: 64px; font-weight: 700; letter-spacing: 0.04em; line-height: 1; }
@@ -100,8 +100,8 @@ html[lang="zh"] .intro { font-size: 12px; line-height: 1.6; }
 .stage { pointer-events: auto; cursor: grab; touch-action: pan-y; }
 .stage.drag { cursor: grabbing; }
 
-.panel.rating { left: 14px; top: 490px; width: 300px; height: 112px; }
-.panel.cooling { left: 14px; top: 608px; width: 300px; height: 82px; }
+.panel.rating { left: 14px; top: 472px; width: 300px; height: 120px; }
+.panel.cooling { left: 14px; top: 598px; width: 300px; height: 92px; }
 .graph { position: absolute; left: 8px; right: 8px; top: 30px; bottom: 8px;
   background: linear-gradient(var(--grid-strong) 1px, transparent 1px) 0 0 / 100% 20%, linear-gradient(90deg, var(--grid-strong) 1px, transparent 1px) 0 0 / 10% 100%; }
 .graph.pending { display: flex; align-items: center; justify-content: center; font: italic 400 11.5px/1 "Barlow", "Noto Sans SC", sans-serif; color: var(--ink-2); }
@@ -109,7 +109,8 @@ html[lang="zh"] .intro { font-size: 12px; line-height: 1.6; }
 /* centre stage: the hero draws here (WebGL), narration under it */
 .stage { left: 320px; top: 48px; width: 758px; height: 642px; border-color: var(--rule-soft); }
 .stage::after { display: none; }
-.narr { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; font: italic 400 16px/1.2 "Barlow", "Noto Sans SC", sans-serif; }
+.narr { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; font: italic 400 16px/1.2 "Barlow", "Noto Sans SC", sans-serif;
+  text-shadow: 0 0 6px var(--paper), 0 0 12px var(--paper), 0 0 2px var(--paper); }
 .hv { position: absolute; font-size: 11px; color: var(--ink-2); }
 .beamtag { position: absolute; font-size: 10px; letter-spacing: 0.18em; color: var(--ink-2); }
 /* Image view: the film on the lightbox (the picture itself is WebGL, drawn under this frame) and the detector link */
@@ -129,13 +130,14 @@ html[lang="zh"] .intro { font-size: 12px; line-height: 1.6; }
 
 .stage.img .legend { left: 21.5%; columns: 1; }
 
-/* the key to the big background glyph: a periodic-table cell, top right of the stage */
-.element { position: absolute; right: 12px; top: 10px; width: 96px; padding: 6px 8px 7px; border: 1px solid var(--rule); background: var(--paper);
-  display: flex; flex-direction: column; pointer-events: none; }
-.element .el-z { font-size: 12px; line-height: 1; color: var(--ink-2); }
-.element .el-sym { font: 800 40px/1 "Barlow Condensed", sans-serif; color: var(--ink); margin-top: 2px; }
-.element .el-name, .element .el-role { font: 600 11.5px/1.3 "Barlow Condensed", "Noto Sans SC", sans-serif; letter-spacing: 0.08em; color: var(--ink-2); }
-.element .el-name { margin-top: 3px; color: var(--ink); }
+/* the key to the plate: a Hounsfield strip, top right of the stage (fades out in the Image view) */
+.hu { position: absolute; right: 12px; top: 10px; width: 172px; padding: 6px 9px 7px; border: 1px solid var(--rule); background: var(--paper);
+  display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
+.hu .hu-t { font: 600 10.5px/1 "Barlow Condensed", "Noto Sans SC", sans-serif; letter-spacing: 0.1em; color: var(--ink); }
+.hu .hu-bar { display: block; height: 10px; border: 1px solid var(--rule-soft); background: linear-gradient(90deg, #000 0%, #4a5560 40%, #8d9aa4 50%, #d6dde2 75%, #fff 100%); }
+.hu .hu-n { display: flex; justify-content: space-between; font-size: 9px; color: var(--ink-2); }
+.hu .hu-n b { font-weight: 400; }
+.hu .hu-w { font-size: 9.5px; color: var(--ink); text-align: center; letter-spacing: 0.06em; }
 
 /* callouts (ui/callouts.js): balloons + legend in Cutaway / Beam, side labels in Exploded */
 .leaders { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
@@ -157,17 +159,17 @@ html[lang="zh"] .intro { font-size: 12px; line-height: 1.6; }
 
 /* right column instruments */
 .panel { overflow: hidden; }
-.panel.params { left: 1084px; top: 48px; width: 342px; height: 124px; }
-.panel.spectrum { left: 1084px; top: 178px; width: 342px; height: 196px; }
-.panel.heat { left: 1084px; top: 380px; width: 342px; height: 168px; }
-.panel.recorder { left: 1084px; top: 554px; width: 342px; height: 136px; }
+.panel.gantry { left: 1084px; top: 48px; width: 342px; height: 168px; }
+.panel.sino { left: 1084px; top: 222px; width: 342px; height: 214px; }
+.panel.spectrum { left: 1084px; top: 442px; width: 342px; height: 126px; }
+.panel.load { left: 1084px; top: 574px; width: 342px; height: 116px; }
 canvas.inst { position: absolute; left: 3px; right: 3px; top: 25px; bottom: 3px; width: calc(100% - 6px); height: calc(100% - 28px); }
 
 /* bottom band: live drawings + readings card */
 .dwg { top: 698px; height: 162px; }
 .d-front { left: 14px; width: 318px; }
 .d-side { left: 338px; width: 192px; }
-.d-plan { left: 536px; width: 318px; }
+.d-detector { left: 536px; width: 318px; }
 .d-section { left: 860px; width: 344px; }
 .dwg-view { position: absolute; left: 4px; right: 4px; top: 25px; bottom: 4px; }
 .dwg-ink { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -227,12 +229,7 @@ html.phone .slider { grid-template-columns: 30px 1fr 50px; }
 html.phone .seg button { height: 30px; font-size: 13px; }
 html.phone .legend, html.phone .leaders, html.phone .callouts { display: none; }
 /* phone: compact (symbol, then number + name over role) so it stays clear of the tube */
-html.phone .element { right: 8px; top: 8px; width: auto; padding: 4px 7px; display: grid; grid-template-columns: auto auto auto; grid-template-rows: auto auto; column-gap: 6px; align-items: baseline; }
-html.phone .element .el-sym { grid-row: 1 / 3; font-size: 26px; margin: 0; align-self: center; }
-html.phone .element .el-z { grid-column: 2; grid-row: 1; font-size: 9px; }
-html.phone .element .el-name { grid-column: 3; grid-row: 1; }
-html.phone .element .el-name { margin: 0; font-size: 10px; }
-html.phone .element .el-role { grid-column: 2 / 4; grid-row: 2; font-size: 10px; white-space: nowrap; }
+html.phone .hu { right: 8px; top: 8px; width: 140px; padding: 4px 7px; }
 html.phone .film .f-cap { font-size: 8.5px; letter-spacing: 0; bottom: 6px; } html.phone .film .f-scale { display: none; }   /* too tight on the 400-px column */
 html.phone .sl-track { height: 26px; }
 html.phone .sl-track::before, html.phone .sl-fill { top: 11px; }
@@ -240,16 +237,16 @@ html.phone .sl-thumb { top: 5px; }
 html.phone .sl-ticks { top: 18px; }
 html.phone .card { order: 4; height: 176px; }
 html.phone .card dl { font-size: 12px; } html.phone .card dd { font-size: 12px; }
-html.phone .params { order: 5; height: 124px; }
-html.phone .spectrum { order: 6; height: 210px; }
-html.phone .heat { order: 7; height: 180px; }
-html.phone .recorder { order: 8; height: 150px; }
+html.phone .gantry { order: 5; height: 168px; }
+html.phone .sino { order: 6; height: 214px; }
+html.phone .spectrum { order: 7; height: 140px; }
+html.phone .load { order: 8; height: 130px; }
 html.phone .d-front { order: 9; height: 176px; }
 html.phone .d-section { order: 10; height: 190px; }
 html.phone .d-side { order: 11; flex: 0 0 140px; height: 176px; }
-html.phone .d-plan { order: 12; flex: 1 1 0; height: 176px; }
-html.phone .rating { order: 13; height: 112px; }
-html.phone .cooling { order: 14; height: 82px; }
+html.phone .d-detector { order: 12; flex: 1 1 0; height: 176px; }
+html.phone .rating { order: 13; height: 128px; }
+html.phone .cooling { order: 14; height: 96px; }
 html.phone .foot { order: 15; height: auto; flex-wrap: wrap; gap: 6px 14px; padding: 4px 0 8px; }
 html.phone .foot-note { flex: 1 1 100%; order: 2; line-height: 1.35; }
 html.phone .foot-right { margin-left: auto; }
@@ -264,3 +261,74 @@ html.demo #narr { display: none; }
   text-align: center; white-space: pre-line; line-height: 1.45; color: #F1F5F8; font-family: "Noto Sans SC", sans-serif; font-weight: 400; letter-spacing: 0.06em;
   text-shadow: 0 0 2px #05080B, 0 0 7px rgba(5, 8, 11, 0.95), 0 1px 16px rgba(5, 8, 11, 0.8); }
 #demo-cap:lang(en) { font-family: "JetBrains Mono", "IBM Plex Mono", monospace; letter-spacing: 0; }
+
+/* ── ultrasound (subject layout, BRIEF §5) ── */
+.paper .glyph-fan { position: absolute; left: 400px; top: 60px; width: 640px; height: 520px; fill: none; stroke: var(--glyph); stroke-width: 2; }
+.paper .glyph-fan path:first-child { fill: var(--glyph); }
+.col-left { height: 448px; }
+.title { font-size: 62px; }
+.knob-row { margin-top: 0; flex-direction: column; gap: 4px; font-size: 11.5px; }
+.knob-row .knob { width: 54px; height: 54px; }
+.knob-row .knob-arc { inset: -9px; width: 72px; height: 72px; }
+.ctl-top { display: grid; grid-template-columns: 70px 1fr; gap: 12px; align-items: center; margin-top: 10px; }
+.ctl-top .sliders { margin-top: 0; }
+.ctl-top .slider { grid-template-columns: 50px 1fr 54px; }
+.ctl-top .sl-name { font-size: 12.5px; letter-spacing: 0.04em; }
+.ctl-top .sl-val { font-size: 12.5px; }
+.scan-lamp::after { content: ""; display: inline-block; width: 6px; height: 6px; margin-left: 5px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px var(--accent); vertical-align: 1px; }
+html.frozen .scan-lamp::after { background: transparent; box-shadow: none; border: 1px solid var(--ink-2); }
+.tgc-row { display: grid; grid-template-columns: 50px 1fr; align-items: center; margin-top: 8px; }
+.tgc-name { font: 700 12.5px/1 "Barlow Condensed", "Noto Sans SC", sans-serif; letter-spacing: 0.04em; }
+.tgc-sl { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.tgc-sl div { display: grid; grid-template-columns: 10px 1fr; align-items: center; gap: 4px; font: 500 9.5px/1 "IBM Plex Mono", monospace; color: var(--ink-2); }
+.tgc-sl i { position: relative; display: block; height: 30px; width: 10px; }
+.tgc-sl i::before { content: ""; position: absolute; left: 4px; top: 0; bottom: 0; width: 2px; background: var(--rule-soft); }
+.tgc-sl b { position: absolute; left: 0; width: 10px; height: 6px; margin-top: -3px; border-radius: 1px; background: linear-gradient(#f0f3f5, #9aa6af); }
+.tgc-sl span { display: grid; gap: 3px; }
+.panel.spec { left: 14px; top: 502px; width: 300px; height: 112px; }
+.panel.pen { left: 14px; top: 620px; width: 300px; height: 70px; }
+.panel.pen { height: 70px; }
+.panel.aline { left: 1084px; top: 48px; width: 342px; height: 150px; }
+.panel.pulse { left: 1084px; top: 204px; width: 342px; height: 158px; }
+.panel.tgc { left: 1084px; top: 368px; width: 342px; height: 162px; }
+.panel.delay { left: 1084px; top: 536px; width: 342px; height: 154px; }
+.d-front { left: 14px; width: 318px; }
+.d-side { left: 338px; width: 254px; }
+.d-array { left: 598px; width: 318px; }
+.d-section { left: 922px; width: 282px; }
+/* the B-mode film on the lightbox, under the probe; the red scan line links them */
+.bfilm { position: absolute; left: 118px; top: 300px; width: 522px; height: 330px; border: 1px solid rgba(216, 230, 238, 0.5); background: #05080b;
+  box-shadow: 0 0 34px rgba(180, 215, 240, 0.16), 0 0 0 4px rgba(14, 20, 27, 0.6); color: #d8e6ee; pointer-events: none; }
+.bfilm canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.bfilm .f-title { position: absolute; left: 9px; top: 7px; font-size: 10px; letter-spacing: 0.08em; opacity: 0.85; }
+.bfilm .f-fov { position: absolute; right: 9px; top: 7px; font-size: 10px; opacity: 0.75; }
+.bfilm .f-ruler { position: absolute; right: 8px; top: 0; bottom: 0; width: 40px; font-size: 9px; }
+.bfilm .f-ruler i { position: absolute; right: 22px; width: 6px; border-top: 1px solid #d8e6ee; }
+.bfilm .f-ruler i.big { width: 10px; }
+.bfilm .f-ruler b { position: absolute; right: 0; font-weight: 400; transform: translateY(-50%); }
+.bfilm .f-marks { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.bfilm .f-marks path { fill: none; stroke: #e8f0f4; stroke-width: 0.9; }
+.bfilm .f-marks circle { fill: #e8f0f4; }
+.bfilm .f-marks text { fill: #e8f0f4; font: 600 10.5px "Barlow Condensed", "Noto Sans SC", sans-serif; letter-spacing: 0.07em; }
+.link { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.link path { fill: none; stroke: #ff3a32; stroke-width: 1.2; }
+.link path.dash { stroke-dasharray: 4 3; }
+html.phone .bfilm { left: 8px; right: 8px; width: auto; top: 200px; height: 140px; }
+html.phone .spec { order: 13; height: 120px; } html.phone .pen { order: 14; height: 90px; }
+html.phone .aline { order: 5; height: 150px; } html.phone .pulse { order: 6; height: 160px; }
+html.phone .tgc { order: 7; height: 160px; } html.phone .delay { order: 8; height: 150px; }
+html.phone .d-array { order: 12; flex: 1 1 0; height: 176px; }
+.title { white-space: normal; font-size: 64px; line-height: 0.88; }
+html[lang="zh"] .title { font-size: 60px; }
+.col-left { height: 430px; }
+.panel.spec { top: 484px; height: 104px; }
+.panel.pen { top: 594px; height: 96px; }
+.bfilm { top: 292px; height: 316px; }
+.narr { bottom: 8px; }
+.stage .legend { display: none; }
+.title { font-size: 56px; }
+html[lang="zh"] .title { font-size: 56px; }
+.subtitle { font-size: 20px; }
+.intro { margin-top: 6px; font-size: 12px; line-height: 1.36; }
+.ctl-top { margin-top: 6px; }
+.views { margin-top: 8px; }
