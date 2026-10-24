@@ -13,13 +13,13 @@
 // Mesh flags: userData.noAudit (skip), userData.audit (include although transparent), userData.auditOk = [names it may overlap].
 import * as THREE from 'three';
 import { createMaterials } from '../js/materials.js';
-import { buildTube } from '../js/build/tube.js';
+import { buildProbe } from '../js/build/probe.js';
 
 const Q = new URLSearchParams(location.search);
-const h = Number(Q.get('h') || 0.001), GAP = Number(Q.get('gap') || 0.0008), GROUND = (Q.get('ground') || 'foot').split(',')    // ground parts, comma-separated;
+const h = Number(Q.get('h') || 0.001), GAP = Number(Q.get('gap') || 0.0008), GROUND = (Q.get('ground') || 'acoustic lens').split(',')    // ground parts, comma-separated;
 const OY = 0.3719, OZ = 0.2903;      // grid lines off round numbers, so they never run along a profile vertex circle
 const CONTAINERS = new Set(['assembly', 'housing', 'insert', 'rotor', 'stand']);
-const { root } = buildTube(createMaterials());
+const { root } = buildProbe(createMaterials());
 root.updateMatrixWorld(true);
 
 // part of a mesh: own name, else the nearest named non-container ancestor, else parent/anon
