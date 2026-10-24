@@ -1,303 +1,208 @@
-// Solver, pure module (no DOM, no three; `node --test`). Every number on the plate comes from here.
-//   Datasheet (SOURCES S1): rating table, anode / assembly heat, cooling, rotor 9,700 rpm / 1.2 s / 3 s brake,
-//   filament ≤ 5.5 A, filtration. Fitted shapes (modelled): emission curves, cooling exponents, rotor curve,
-//   focal-track temperature, heel profile. NIST XCOM μ/ρ tables for Al, W and the phantom tissues.
-// Spectrum: Kramers bremsstrahlung (E0 − E) on 0.5-keV bins, filtered by aluminium and a tungsten self-absorption
-// term (modelled), plus W K lines above the 69.525 keV edge (SOURCES S2; intensity modelled).
+// The solver (subject): a 5–2 MHz curved-array probe imaging the series phantom. Pure (no DOM, no three.js), so
+// node --test runs it. Public facts (SOURCES S1): FOV 67.5°, ROC 50 mm, aperture 60 mm, 5–2 MHz, depth ≤ 30 cm;
+// c = 1540 m/s scanner convention (S2). Everything else is *modelled* (BRIEF §3).
+//   · pulse / spectrum: Gabor pulse, 60 % fractional bandwidth (modelled)
+//   · bmode(): line-by-line beam model on point scatterers (S0 spike, BRIEF §7): Gaussian focused beam × pulse,
+//     RF summed per line, two-way attenuation α·f marched per line, interface transmission, noise floor before TGC,
+//     envelope, log compression, scan conversion. Computed once per parameter change, never per frame.
+//   · createSim(): session state (freeze, f, depth, gain), the drawn line sweep, events; pure in t + a command log.
 
-export const K_EDGE = 69.525;
-export const K_LINES = [            // keV, relative weight (modelled, TASMIP-like ratios)
-  { e: 57.98, w: 0.58, name: 'Kα2' },
-  { e: 59.32, w: 1.00, name: 'Kα1' },
-  { e: 67.24, w: 0.34, name: 'Kβ1' },
-  { e: 69.07, w: 0.09, name: 'Kβ2' },
-];
-
-// ── mass attenuation μ/ρ (cm²/g), NIST X-ray mass attenuation tables (Hubbell & Seltzer, checked 2026-10-20), log-log interpolated ─────────────
-const XE = [10, 15, 20, 30, 40, 50, 60, 80, 100, 150];
-export const MU = {
-  al: [26.23, 7.955, 3.441, 1.128, 0.5685, 0.3681, 0.2778, 0.2018, 0.1704, 0.1378],
-  soft: [5.379, 1.699, 0.8230, 0.3790, 0.2688, 0.2264, 0.2048, 0.1823, 0.1693, 0.1492],   // tissue, soft (ICRU-44)
-  bone: [28.51, 9.032, 4.001, 1.331, 0.6655, 0.4242, 0.3148, 0.2229, 0.1855, 0.1480],    // bone, cortical (ICRU-44)
-  fat: [3.268, 1.083, 0.5677, 0.3063, 0.2396, 0.2123, 0.1974, 0.1800, 0.1688, 0.1500],     // adipose (ICRU-44)
-  air: [5.120, 1.614, 0.7779, 0.3538, 0.2485, 0.2080, 0.1875, 0.1662, 0.1541, 0.1356],
+export const PROBE = {
+  fov: 67.5 * Math.PI / 180,          // S1
+  roc: 50,                            // mm, S1
+  aperture: 60,                       // mm, S1
+  band: [2, 5],                       // MHz, S1
+  depthMax: 300,                      // mm, S1
+  c: 1.54,                            // mm/µs = 1540 m/s, S2
+  elements: 128,                      // modelled (resellers, unconfirmed)
+  fc: 3.5,                            // MHz, modelled centre
+  bw: 0.6,                            // fractional −6 dB bandwidth, modelled
+  focus: 70,                          // mm transmit focus, modelled
+  rxAp: 40,                           // mm dynamic receive aperture, modelled
+  lines: 128,                         // lines per frame (frame-rate reading), modelled
 };
-// densities g/cm³ (ICRU-44; inflated lung = soft tissue at 0.26, modelled)
-export const RHO = { al: 2.699, soft: 1.06, bone: 1.92, fat: 0.95, lung: 0.26, air: 0.0012 };
-export function mu(mat, E) {
-  const m = MU[mat === 'lung' ? 'soft' : mat];
-  if (E <= XE[0]) return m[0] * (XE[0] / E) ** 3;
-  for (let i = 1; i < XE.length; i++) {
-    if (E <= XE[i]) {
-      const u = Math.log(E / XE[i - 1]) / Math.log(XE[i] / XE[i - 1]);
-      return Math.exp(Math.log(m[i - 1]) + u * Math.log(m[i] / m[i - 1]));
-    }
-  }
-  return m[m.length - 1];
-}
-export const muAl = (E) => mu('al', E);
+PROBE.arc = PROBE.roc * PROBE.fov;                   // 58.9 mm
+PROBE.pitch = PROBE.arc / PROBE.elements;            // 0.46 mm (modelled with the count)
 
-/** @returns {{E: Float32Array, I: Float32Array, C: Float32Array, kv: number, mean: number, kOn: boolean}} I normalised to its max */
-export function spectrum(kv, { alMM = 2.5, step = 0.5, eMax = 150 } = {}) {
-  const n = Math.round(eMax / step) + 1;
-  const E = new Float32Array(n), I = new Float32Array(n);
-  let sum = 0, sumE = 0;
-  for (let i = 0; i < n; i++) {
-    const e = i * step; E[i] = e;
-    if (e < 1 || e >= kv) continue;
-    const brems = kv - e;                                      // Kramers, energy per bin: ∝ Z (E0 − E)
-    const filt = Math.exp(-muAl(e) * RHO.al * alMM / 10);      // Al: 0.9 mm inherent + oil/glass equivalent (modelled)
-    const self = Math.exp(-1.3e4 / (e * e * e));               // W self-absorption in the target (modelled)
-    I[i] = brems * filt * self;
-  }
-  const Cn = Float32Array.from(I);                             // continuum alone, same scale
-  const kOn = kv > K_EDGE;
-  if (kOn) {
-    // line strength grows with overvoltage (kVp/edge − 1)^1.6 (modelled): Kα1 ≈ 2.6 × the continuum peak at 120 kV
-    let ref = 0; for (let i = 0; i < n; i++) ref = Math.max(ref, I[i]);
-    const s = ref * 2.6 * Math.min(1.25, ((kv / K_EDGE - 1) / 0.726) ** 1.6);
-    for (const L of K_LINES) {
-      const j = Math.round(L.e / step);
-      for (let d = -1; d <= 1; d++) if (I[j + d] !== undefined) I[j + d] += s * L.w * (d === 0 ? 1 : 0.25);
-    }
-  }
-  let peak = 0;
-  for (let i = 0; i < n; i++) { peak = Math.max(peak, I[i]); sum += I[i]; sumE += I[i] * E[i]; }
-  for (let i = 0; i < n; i++) { I[i] /= peak || 1; Cn[i] /= peak || 1; }
-  return { E, I, C: Cn, kv, mean: sum ? sumE / sum : 0, kOn };
-}
+export const lambda = (f) => PROBE.c / f;                         // mm
+export const roundTrip = (dmm) => 2 * dmm / PROBE.c;              // µs
+export const depthOf = (us) => us * PROBE.c / 2;                  // mm
+export const frameRate = (depthMm, lines = PROBE.lines) => 1e6 / (lines * roundTrip(depthMm));
 
-/** the spectrum in ~15 energy bins for the radiograph (use shot): energy fluence `w` (sums to 1) and photon share `n` */
-export function binned(kv, { width = 10, ...o } = {}) {
-  const sp = spectrum(kv, o), out = [];
-  for (let lo = 0; lo < kv; lo += width) {
-    let w = 0, eW = 0, n = 0;
-    for (let i = 0; i < sp.E.length; i++) if (sp.E[i] >= lo && sp.E[i] < lo + width && sp.E[i] > 0) { w += sp.I[i]; eW += sp.I[i] * sp.E[i]; n += sp.I[i] / sp.E[i]; }
-    if (w > 0) out.push({ e: eW / w, w, n });
-  }
-  const W = out.reduce((a, b) => a + b.w, 0), N = out.reduce((a, b) => a + b.n, 0);
-  for (const b of out) { b.w /= W; b.n /= N; }
-  return out;
-}
-/** detector signal (energy-integrating) behind thicknesses {mat: cm}, relative to the open beam (Beer–Lambert per bin) */
-export function transmit(bins, path) {
-  let s = 0;
-  for (const b of bins) { let a = 0; for (const m in path) a += mu(m, b.e) * RHO[m] * path[m]; s += b.w * Math.exp(-a); }
-  return s;
-}
-
-/** entrance surface air kerma, mGy (modelled): tube output Y ≈ 0.042 mGy/mAs at 1 m and 80 kV behind 2.5 mm Al, ∝ kV²,
- *  inverse square to the entrance surface, backscatter factor 1.35 (typical values; to verify against SOURCES) */
-export const entranceDose = (kv, mas, d) => 0.042 * (kv / 80) ** 2 * mas / (d * d) * 1.35;
-/** the console's chest program for the Image view (PA, SID 180 cm): 120 kV, 4 mAs as 400 mA × 10 ms */
-export const CHEST = { kv: 120, ma: 400, ms: 10 };
-
-// ── derived numbers (SOURCES S5) ──────────────────────────────────────────────────────────────────────────
-export const C = 299792458, ME = 510.998950;                 // keV
-export const electronBeta = (kv) => { const g = 1 + kv / ME; return Math.sqrt(1 - 1 / (g * g)); };
-export const xrayShare = (kv) => 1e-9 * 74 * kv * 1e3;     // η ≈ 1e-9 Z V
-
-// ── datasheet ratings (p 4, 6: absolute maximum, 180 Hz) ─────────────────────────────────────────────────
-// The rating curves are constant power at each time (every kV curve gives the same kV × mA within ±1 %), so one
-// table per focus holds them: [s, kW], read off p 6 (±3 %; 75 kW at 0.1 s is the printed nominal).
-export const RATING = {
-  large: [[0.01, 84.5], [0.02, 82], [0.05, 78.8], [0.1, 75], [0.2, 64.6], [0.5, 49], [1, 38], [2, 27.7], [5, 16.7], [10, 11.8]],
-  small: [[0.01, 29.6], [0.02, 29.2], [0.05, 28.3], [0.1, 27], [0.2, 24.7], [0.5, 21.3], [1, 18.1], [2, 14.7], [5, 10.2], [10, 7.3]],
-};
-// current caps from the same charts: 1,000 / 400 mA, lower at 40–50 kV (space charge)
-const CAP = { large: [[40, 800], [50, 1000]], small: [[40, 300], [50, 350], [60, 400]] };
-export const FOCUS = { large: { mm: 1.2, maxMA: 1000 }, small: { mm: 0.6, maxMA: 400 } };
-export const ANODE = { Q: 210e3, P: 475, n: 1.26, R: 0.037, track: 0.030, angle: 12 };   // J, W, fitted exponent, m, m, °
-export const ASSY = { Q: 900e3, P: 158, n: 1.24, C: 16.4e3 };                           // P, n fitted to p 10; C modelled (J/K)
-export const ROTOR = { rpm: 9700, up: 1.2, brake: 3, tau: 0.30, over: 1.02 };           // tau, over: modelled curve
-export const HU = 0.70;                                                                   // J per heat unit
-
-const lerpLog = (tab, x) => {
-  if (x <= tab[0][0]) return tab[0][1];
-  for (let i = 1; i < tab.length; i++) if (x <= tab[i][0]) {
-    const [x0, y0] = tab[i - 1], [x1, y1] = tab[i];
-    return y0 + (y1 - y0) * Math.log(x / x0) / Math.log(x1 / x0);
-  }
-  const [xa, ya] = tab[tab.length - 2], [xb, yb] = tab[tab.length - 1];          // beyond 10 s: same log slope
-  return yb * (x / xb) ** (Math.log(yb / ya) / Math.log(xb / xa));
-};
-export const ratingKW = (sec, focus = 'large') => lerpLog(RATING[focus], sec);
-export function maxMA(kv, focus = 'large') {
-  const c = CAP[focus], top = FOCUS[focus].maxMA;
-  if (kv <= c[0][0]) return c[0][1];
-  for (let i = 1; i < c.length; i++) if (kv <= c[i][0]) return c[i - 1][1] + (c[i][1] - c[i - 1][1]) * (kv - c[i - 1][0]) / (c[i][0] - c[i - 1][0]);
-  return top;
-}
-/** auto focus: the small spot when its rating and cap allow, else the large */
-export const autoFocus = (kv, ma, ms) => (ma <= maxMA(kv, 'small') && kv * ma / 1000 <= ratingKW(ms / 1000, 'small') ? 'small' : 'large');
-
-/** why an exposure may not run, or null. Q = anode heat now (J) */
-export function interlock({ kv, ma, ms, focus }, Q = 0) {
-  const kw = kv * ma / 1000;
-  if (ma > maxMA(kv, focus) + 1e-9) return 'current';
-  if (kw > ratingKW(ms / 1000, focus) * 1.0001) return 'rating';
-  if (Q + kw * 1e3 * (1 - xrayShare(kv)) * ms / 1000 > ANODE.Q) return 'heat';
-  return null;
-}
-
-// ── filament emission (p 9 shape, fitted: Richardson–Dushman × Schottky, blended with the Child space-charge
-// limit). Filament temperature T = 2,700 K × (I / 5 A)^0.52 (modelled). RMS fit error ≈ 11 % on the large focus.
-const KB = 8.617e-5, WF = 4.54;
-const EM = { large: { A: 28184, G: 5.01, off: 0 }, small: { A: 28184, G: 2.0, off: 0.32 } };
-export const filamentK = (amps, focus = 'large') => 2700 * (Math.max(0.5, amps - EM[focus].off) / 5) ** 0.52;
-export function emission(amps, kv, focus = 'large') {
-  const T = filamentK(amps, focus), e = EM[focus];
-  const sat = e.A * T * T * Math.exp(-WF / (KB * T)) * (1 + 0.04 * Math.sqrt(kv));
-  const cl = e.G * kv ** 1.5;
-  return 1 / (1 / sat + 1 / cl);
-}
-export const FIL = { max: 5.5, standby: 3.3, tau: 0.25 };   // A; standby and boost time constant modelled
-export function filamentFor(ma, kv, focus = 'large') {
-  let lo = 2, hi = FIL.max;
-  if (emission(hi, kv, focus) < ma) return hi;
-  for (let k = 0; k < 40; k++) { const m = (lo + hi) / 2; emission(m, kv, focus) < ma ? (lo = m) : (hi = m); }
-  return (lo + hi) / 2;
-}
-
-// ── heel effect (modelled): X-rays made ≈ 5 µm deep in W leave at α = 12° + φ to the target face (φ > 0 toward the
-// cathode); the W path d / sin α filters them. Returns intensity relative to the central ray, at the mean energy.
-const MU_W = [[30, 22.73], [40, 10.67], [50, 5.949], [60, 3.713], [69.52, 2.552], [69.53, 11.23], [80, 7.81], [100, 4.438], [150, 1.581]];  // NIST, cm²/g
-const muW = (E) => { let i = 1; while (i < MU_W.length - 1 && E > MU_W[i][0]) i++; const [e0, m0] = MU_W[i - 1], [e1, m1] = MU_W[i]; return Math.exp(Math.log(m0) + Math.log(m1 / m0) * Math.log(E / e0) / Math.log(e1 / e0)); };
-export function heel(phiDeg, kv = 120) {
-  const e = spectrum(kv).mean, rd = 19.3 * 5e-4;                 // ρ d (g/cm²)
-  const f = (p) => Math.exp(-muW(e) * rd / Math.sin(Math.max(0.3, ANODE.angle + p) * Math.PI / 180));
-  return f(phiDeg) / f(0);
-}
-
-// ── focal-track temperature (modelled): disc bulk (radiation balance) + track ring (1-D heating of the 5.8 mm
-// band, relaxing into the disc over ~20 s) + flash under the spot (dwell = spot width / track speed). Constants:
-// tungsten √(kρc) = 17,800 J m⁻² K⁻¹ s⁻½; ring and flash scales fitted so a cold-anode exposure on the rating curve peaks at 2,050–3,180 °C
-// (large 2,380–3,180, small 2,050–2,580), always under W melting (3,422 °C).
-const EFF = 17800, TAU_RING = 20, RING_S = 0.59, FLASH_S = 0.515, SIGMA_EA = ANODE.P / (1473 ** 4 - 293 ** 4);
-const ringG = (x) => (x <= 0 ? 0 : Math.sqrt(TAU_RING) * Math.tanh(Math.sqrt(x / TAU_RING)));
-export const spotArea = (focus) => { const w = FOCUS[focus].mm * 1e-3; return { w, l: w / Math.sin(ANODE.angle * Math.PI / 180) }; };
-export const trackSpeed = (rpm) => 2 * Math.PI * ANODE.track * rpm / 60;
-export const anodeLoss = (Q) => ANODE.P * Math.max(0, Q / ANODE.Q) ** ANODE.n;
-export const housingLoss = (Q) => ASSY.P * Math.max(0, Q / ASSY.Q) ** ASSY.n;
-export const oilC = (Qh) => 20 + Qh / ASSY.C;
-export function discC(Qa, Qh) { const To = oilC(Qh) + 273.15; return (anodeLoss(Qa) / SIGMA_EA + To ** 4) ** 0.25 - 273.15; }
-export function flashK(watts, focus, rpm) {
-  if (watts <= 0) return 0;
-  const { w, l } = spotArea(focus), dwell = w / Math.max(trackSpeed(rpm), 0.05 * trackSpeed(ROTOR.rpm));
-  return FLASH_S * 2 * (watts / (w * l)) * Math.sqrt(Math.min(dwell, 0.05) / Math.PI) / EFF;
-}
-const RING_A = 2 * Math.PI * ANODE.track * spotArea('large').l;           // m², the band the spot sweeps
-const ringK = (segs, t) => {
-  let s = 0;
-  for (const g of segs) s += (g.w / RING_A) * (ringG(t - g.t0) - ringG(t - (g.t1 ?? t)));
-  return RING_S * 2 * s / (Math.sqrt(Math.PI) * EFF);
+// tissues (modelled from the S2 ranges): α dB/cm/MHz, Z MRayl, scatter amplitude
+export const TISSUE = {
+  gel:    { a: 0.0, Z: 1.50, s: 0.0 },
+  fat:    { a: 0.6, Z: 1.38, s: 0.35 },
+  muscle: { a: 1.0, Z: 1.70, s: 0.9 },
+  liver:  { a: 0.5, Z: 1.65, s: 1.0 },
+  bile:   { a: 0.2, Z: 1.52, s: 0.0 },
+  stone:  { a: 30, Z: 3.0, s: 0.3 },
+  kidney: { a: 0.8, Z: 1.62, s: 0.55 },
 };
 
-// ── the stepped simulation ───────────────────────────────────────────────────────────────────────────────
-// Commands: prep(), expose() (preps first when needed, starts once the rotor is above 95 % and the filament has
-// boosted), release() (ends the exposure, or cancels a waiting one), set(k, v) for kv / ma / ms / focus.
-// step(dt) integrates in ≤ 1/240 s sub-steps; events are pushed with their exact sub-step time, never dropped.
-export const PHASES = ['idle', 'prep', 'ready', 'expose', 'brake'];
-export function createSim({ kv = 120, ma = 100, ms = 4000, focus = 'auto', anode = 0.12, assy = 150e3 } = {}) {
-  const s = {
-    t: 0, phase: 'idle', kv, ma, ms, focus, rpm: 0, rev: 0, drive: 0,
-    amps: FIL.standby, ampsSet: FIL.standby, mA: 0, on: false, expT: 0, t0: -1, t1: -1,
-    Qa: anode * ANODE.Q, Qh: assy, waiting: false, hold: 0, reason: null, ring: [], kOn: false,
-  };
-  const events = [];
-  const emit = (type, extra) => events.push({ t: s.t, type, ...extra });
-  const op = () => ({ kv: s.kv, ma: s.ma, ms: s.ms, focus: s.focus === 'auto' ? autoFocus(s.kv, s.ma, s.ms) : s.focus });
-  const target = () => filamentFor(s.ma, s.kv, op().focus);
+// the phantom slice under the probe (modelled): x lateral, y below the skin, mm; the stone's top at 70 mm depth
+export const PH = {
+  gb: { x: -4, y: 69, rx: 30, ry: 14 },
+  stone: { x: 2, y: 76.5, r: 6.5 },
+  kidney: { x: 38, y: 128, rx: 26, ry: 16 },
+};
+export function tissueAt(x, y) {
+  if (y < 9) return 'fat';
+  if (y < 20) return 'muscle';
+  const { gb, stone: st, kidney: k } = PH;
+  if ((x - st.x) ** 2 + (y - st.y) ** 2 < st.r ** 2) return 'stone';
+  if (((x - gb.x) / gb.rx) ** 2 + ((y - gb.y) / gb.ry) ** 2 < 1) return 'bile';
+  if (((x - k.x) / k.rx) ** 2 + ((y - k.y) / k.ry) ** 2 < 1) return 'kidney';
+  return 'liver';
+}
 
-  function prep() {
-    if (s.phase === 'idle' || s.phase === 'brake') { s.phase = 'prep'; s.ampsSet = target(); emit('prep'); }
-  }
-  function expose() {
-    if (s.phase === 'expose') return;
-    s.reason = interlock(op(), s.Qa);                     // the console refuses at the press (checked again at ready)
-    if (s.reason) { emit('interlock', { reason: s.reason }); return; }
-    prep(); s.waiting = true;
-  }
-  function endBeam(type = 'expose-end') {
-    if (!s.on) return;
-    s.on = false; s.mA = 0; s.t1 = s.t; s.ring.at(-1).t1 = s.t;
-    emit(type, { expT: s.expT });
-    if (s.kOn) { s.kOn = false; emit('k-lines-off'); }
-    s.phase = 'brake'; s.hold = 0; s.ampsSet = FIL.standby; emit('brake');
-  }
-  function release() {
-    if (s.on) endBeam();
-    else if (s.waiting || s.phase === 'prep' || s.phase === 'ready') { s.waiting = false; s.phase = 'brake'; s.ampsSet = FIL.standby; emit('brake'); }
-  }
-  function set(k, v) {
-    if (s[k] === v) return;
-    s[k] = v;
-    if (s.phase !== 'idle' && s.phase !== 'brake') s.ampsSet = target();
-    if (s.on && (k === 'kv' || k === 'ma' || k === 'focus')) {           // a new constant-power piece of the ring history
-      s.ring.at(-1).t1 = s.t; s.ring.push({ t0: s.t, w: power() });
-      const kOn = s.kv > K_EDGE; if (kOn !== s.kOn) { s.kOn = kOn; emit(kOn ? 'k-lines-on' : 'k-lines-off'); }
-    }
-  }
-  const power = () => s.kv * s.ma * (1 - xrayShare(s.kv));             // W into the anode
+// sector geometry: the virtual apex C sits R above the face centre; (θ, d) ↔ (x, y below the skin)
+export const toXY = (th, d) => [(PROBE.roc + d) * Math.sin(th), (PROBE.roc + d) * Math.cos(th) - PROBE.roc];
+export const toPolar = (x, y) => [Math.atan2(x, y + PROBE.roc), Math.hypot(x, y + PROBE.roc) - PROBE.roc];
+/** the line through the stone centre: angle and the depth of its top surface (the money-shot reading) */
+export function stoneLine() {
+  const [th, d] = toPolar(PH.stone.x, PH.stone.y);
+  return { th, d: d - PH.stone.r };
+}
 
-  function sub(dt) {
-    s.t += dt;
-    // rotor: induction drive towards 1.02 × 9,700 rpm (first order), DC brake = constant deceleration to stop in 3 s
-    const run = ROTOR.rpm * ROTOR.over;
-    if (s.phase === 'prep' || s.phase === 'ready' || s.phase === 'expose') s.rpm += (run - s.rpm) * (1 - Math.exp(-dt / ROTOR.tau));
-    else if (s.phase === 'brake') {
-      s.rpm = Math.max(0, s.rpm - ROTOR.rpm / ROTOR.brake * dt);
-      if (s.rpm === 0) { s.phase = 'idle'; emit('stop'); }
-    }
-    s.rev += s.rpm / 60 * dt;
-    // filament: first-order boost / fall back
-    s.amps += (s.ampsSet - s.amps) * (1 - Math.exp(-dt / FIL.tau));
-    if (s.phase === 'prep' && s.rpm >= 0.95 * ROTOR.rpm && Math.abs(s.amps - s.ampsSet) < 0.02) { s.phase = 'ready'; emit('rotor-up', { rpm: s.rpm }); }
-    if (s.phase === 'ready' && s.waiting) {
-      s.waiting = false;
-      const o = op(), why = interlock(o, s.Qa);
-      if (why) { s.reason = why; emit('interlock', { reason: why }); s.phase = 'brake'; s.ampsSet = FIL.standby; emit('brake'); }
-      else {
-        s.phase = 'expose'; s.on = true; s.t0 = s.t; s.expT = 0; s.ring.push({ t0: s.t, w: power() });
-        emit('expose-start', { ...o });
-        if (s.kv > K_EDGE) { s.kOn = true; emit('k-lines-on'); }
+// ── pulse and spectrum ─────────────────────────────────────────────────────────
+const sigT = (f, bw = PROBE.bw) => Math.sqrt(2 * Math.log(2)) / (Math.PI * f * bw);   // µs, −6 dB band = bw·f
+export function pulse(f = PROBE.fc, n = 240, span = 3) {
+  const s = sigT(f), t = [], v = [], t0 = span / 2;
+  for (let i = 0; i < n; i++) { const x = span * i / (n - 1); t.push(x); v.push(Math.exp(-((x - t0) ** 2) / (2 * s * s)) * Math.cos(2 * Math.PI * f * (x - t0))); }
+  return { t, v };
+}
+/** amplitude spectrum, peak 1; −6 dB edges at f·(1 ± bw/2) */
+export const spectrum = (fq, f = PROBE.fc, bw = PROBE.bw) => { const s = sigT(f, bw); return Math.exp(-2 * (Math.PI * s * (fq - f)) ** 2); };
+export const band6 = (f = PROBE.fc, bw = PROBE.bw) => [f * (1 - bw / 2), f * (1 + bw / 2)];
+
+// ── attenuation, TGC, penetration ──────────────────────────────────────────────
+export const BUDGET = 60;              // dB between a liver echo at the face and the noise floor (modelled; gives 30 cm at 2 MHz)
+export const TGCMAX = 55;              // dB
+export const loss = (dmm, f, a = TISSUE.liver.a) => 2 * a * f * dmm / 10;            // two-way, dB
+export const penetration = (f, a = TISSUE.liver.a) => Math.min(PROBE.depthMax, BUDGET / (2 * a * f) * 10);   // mm
+/** TGC (dB) at depth: liver slope capped at TGCMAX, plus four slider points (dB) spread over the depth */
+export function tgc(dmm, f, depth, sl = [0, 0, 0, 0]) {
+  const k = Math.min(3, Math.max(0, dmm / depth * 3)), i = Math.min(2, Math.floor(k)), u = k - i;
+  const pts = [sl[0], sl[1], sl[2], sl[3]];
+  return Math.min(TGCMAX, loss(dmm, f)) + pts[i] + (pts[i + 1] - pts[i]) * u;
+}
+
+// ── focusing delays: per element, curved array, transmit focus on the line through the aperture centre ──
+export function delays({ line = 0, focus = PROBE.focus, active = 64 } = {}) {
+  const N = PROBE.elements, R = PROBE.roc, out = new Array(N).fill(0);
+  const ang = (i) => -PROBE.fov / 2 + PROBE.fov * (i + 0.5) / N;
+  const fx = (R + focus) * Math.sin(line), fy = (R + focus) * Math.cos(line);
+  const c0 = Math.round((line + PROBE.fov / 2) / PROBE.fov * N - active / 2);
+  const i0 = Math.max(0, Math.min(N - active, c0));
+  let max = 0; const path = [];
+  for (let i = i0; i < i0 + active; i++) { const p = Math.hypot(R * Math.sin(ang(i)) - fx, R * Math.cos(ang(i)) - fy); path.push(p); max = Math.max(max, p); }
+  for (let k = 0; k < active; k++) out[i0 + k] = (max - path[k]) / PROBE.c;      // µs: the far elements fire first
+  return { d: out, i0, active };
+}
+
+// ── the B-mode image ───────────────────────────────────────────────────────────
+let seed = 12345;
+const rand = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296);
+const gauss = () => Math.sqrt(-2 * Math.log(rand() + 1e-12)) * Math.cos(2 * Math.PI * rand());
+
+/** RF + envelope per line. Deterministic (fixed seed). ≈ 2 s at 3.5 MHz, 160 mm, 192 lines (Node, one core). */
+export function bmode({ f = PROBE.fc, depth = 160, lines = 192, gain = 0, tgcPts = [0, 0, 0, 0], density = 600000 / 160 } = {}) {
+  seed = 12345;
+  const R = PROBE.roc, FOV = PROBE.fov, lam = lambda(f), k2 = 4 * Math.PI / lam;
+  const sigZ = 0.25 * lam / PROBE.bw, focus = PROBE.focus, Fnum = 2.5, sig0 = 0.42 * lam * Fnum, AP = PROBE.rxAp;
+  const dz = 0.05, NS = Math.round(depth / dz), dth = FOV / (lines - 1);
+  const I = new Float32Array(lines * NS);
+  const Q = new Float32Array(lines * NS);
+  const N = Math.round(density * depth * (depth + 2 * R) / (160 + 2 * R));
+  const pts = [];
+  for (let n = 0; n < N; n++) pts.push([(rand() - 0.5) * FOV, rand() * depth, gauss()]);
+  // specular surfaces: stone top, gallbladder wall, diaphragm, kidney capsule
+  const arc = (cx, cy, rx, ry, a0, a1, amp, m) => { for (let i = 0; i < m; i++) { const a = a0 + (a1 - a0) * rand(); pts.push(['xy', cx + rx * Math.cos(a), cy + ry * Math.sin(a), amp * (0.7 + 0.3 * rand())]); } };
+  const { gb, stone: st, kidney: kd } = PH;
+  arc(st.x, st.y, st.r, st.r, Math.PI * 1.05, Math.PI * 1.95, 14, 1500);
+  arc(gb.x, gb.y, gb.rx + 0.6, gb.ry + 0.6, 0, 2 * Math.PI, 3.5, 2500);
+  arc(0, 330, 200, 180, Math.PI * 1.35, Math.PI * 1.65, 6, 3000);
+  arc(kd.x, kd.y, kd.rx + 0.5, kd.ry + 0.5, 0, 2 * Math.PI, 3, 1500);
+  for (const p of pts) {
+    let th, d, amp;
+    if (p[0] === 'xy') { [th, d] = toPolar(p[1], p[2]); amp = p[3]; }
+    else { [th, d] = p; const [x, y] = toXY(th, d); amp = p[2] * TISSUE[tissueAt(x, y)].s; }
+    if (!amp || d < 0 || d >= depth || Math.abs(th) > FOV / 2) continue;
+    const sig = Math.hypot(sig0, 0.42 * lam * Math.max(d, 5) / AP, 0.3 * sig0 * Math.abs(d - focus) / focus * Fnum) / (R + d);
+    const l0 = Math.round((th + FOV / 2) / dth), span = Math.ceil(3 * sig / dth);
+    const s0 = Math.max(0, Math.floor((d - 3 * sigZ) / dz)), s1 = Math.min(NS - 1, Math.ceil((d + 3 * sigZ) / dz));
+    for (let l = Math.max(0, l0 - span); l <= Math.min(lines - 1, l0 + span); l++) {
+      const w = amp * Math.exp(-(((l * dth - FOV / 2) - th) ** 2) / (sig * sig));
+      for (let s = s0; s <= s1; s++) {
+        const u = s * dz - d, e = w * Math.exp(-u * u / (2 * sigZ * sigZ));
+        I[l * NS + s] += e * Math.cos(k2 * u); Q[l * NS + s] += e * Math.sin(k2 * u);
       }
     }
-    // beam: tube current follows the filament (emission at the present kV); heat in
-    if (s.on) {
-      const f = op().focus;
-      s.mA = Math.min(emission(s.amps, s.kv, f), maxMA(s.kv, f) * 1.05);
-      s.expT = s.t - s.t0;
-      s.Qa += s.kv * s.mA * (1 - xrayShare(s.kv)) * dt;
-      if (s.Qa >= ANODE.Q) { s.reason = 'heat'; emit('interlock', { reason: 'heat' }); endBeam(); }
-      else if (s.expT >= s.ms / 1000 - 1e-9) endBeam();
-    }
-    // heat out: anode → housing / oil (radiation, fitted), housing → room
-    const qa = anodeLoss(s.Qa) * dt, qh = housingLoss(s.Qh) * dt;
-    s.Qa = Math.max(0, s.Qa - qa); s.Qh = Math.max(0, s.Qh + qa - qh);
-    if (s.ring.length > 8) s.ring = s.ring.filter((g) => g.t1 == null || s.t - g.t1 < 6 * TAU_RING);
   }
+  // attenuation + interface loss marched per line; noise before TGC; envelope (env) and RF (rf) after TGC
+  const NOISE = 4e-4, env = new Float32Array(lines * NS), rf = new Float32Array(lines * NS);
+  const rx = new Float32Array(NS);                    // mean received level per depth, dB (before TGC), for the TGC chart
+  for (let l = 0; l < lines; l++) {
+    const th = l * dth - FOV / 2; let dB = 0, T = 1, prev = null;
+    for (let s = 0; s < NS; s++) {
+      const d = s * dz, [x, y] = toXY(th, d), tt = TISSUE[tissueAt(x, y)];
+      if (prev && prev !== tt) { const r = (tt.Z - prev.Z) / (tt.Z + prev.Z); T *= (1 - r * r) ** 2; }
+      prev = tt; dB += 2 * tt.a * f * dz / 10;
+      const g = 10 ** ((tgc(d, f, depth, tgcPts) + gain) / 20), k = 10 ** (-dB / 20) * T;
+      const n1 = NOISE * gauss(), n2 = NOISE * gauss();
+      const ei = I[l * NS + s] * k + n1, eq = Q[l * NS + s] * k + n2;
+      env[l * NS + s] = Math.hypot(ei, eq) * g; rf[l * NS + s] = ei * g;
+      rx[s] += Math.hypot(ei, eq) / lines;
+    }
+  }
+  // white point: from the default-gain image, so the gain control moves the picture (S3 fixes it to a constant)
+  const smp = []; for (let i = 0; i < env.length; i += 37) if (env[i] > 0) smp.push(env[i]);
+  smp.sort((a, b) => a - b);
+  const ref = smp[Math.floor(smp.length * 0.995)] * 2.5 / 10 ** (gain / 20);
+  return { f, depth, lines, NS, dz, dth, env, rf, ref, rx: Array.from(rx, (v) => 20 * Math.log10(v / ref + 1e-12)), noise: 20 * Math.log10(NOISE * 1.25 / ref) };
+}
 
-  function step(dt) { let left = dt; while (left > 1e-12) { const h = Math.min(left, 1 / 240); sub(h); left -= h; } return api.read(); }
+/** scan-convert into an RGBA buffer W × H covering the sector; `px` mm per pixel, apex at (W/2, −R/px + top) */
+export function scanConvert(B, W, H, { dr = 60, top = 2 } = {}) {
+  const R = PROBE.roc, FOV = PROBE.fov, px = sectorPx(B.depth, W, H, top), out = new Uint8ClampedArray(W * H * 4);
+  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+    const o = (j * W + i) * 4, x = (i + 0.5 - W / 2) * px, y = (j + 0.5 - top) * px;
+    const [th, d] = toPolar(x, y);
+    if (d < 0 || d >= B.depth - B.dz || Math.abs(th) > FOV / 2) continue;
+    const lf = (th + FOV / 2) / B.dth, l = Math.min(B.lines - 2, Math.floor(lf)), a = lf - l, s = Math.round(d / B.dz);
+    const v = B.env[l * B.NS + s] * (1 - a) + B.env[(l + 1) * B.NS + s] * a;
+    const g = Math.max(0, Math.min(1, 1 + 20 * Math.log10(v / B.ref + 1e-9) / dr));
+    out[o] = out[o + 1] = out[o + 2] = Math.round(255 * g); out[o + 3] = 255;
+  }
+  return out;
+}
+/** mm per pixel so the whole sector of `depth` fits W × H below a `top` px margin */
+export function sectorPx(depth, W, H, top = 2) {
+  const R = PROBE.roc, half = PROBE.fov / 2;
+  const w = 2 * (R + depth) * Math.sin(half), h = (R + depth) - R * Math.cos(half);
+  return Math.max(w / W, h / (H - top - 2));
+}
 
-  const api = {
-    s, events, prep, expose, release, set, step,
-    /** a plain snapshot for the plate: everything instruments, card, hero and narration show */
+// ── session: freeze / scan, parameters, the drawn sweep ────────────────────────
+// The real frame takes 27 ms at 16 cm (37 fps): far too fast to watch, so the sweep is drawn at 1/100 speed.
+export const DRAWN = 1 / 100;
+export function createSim(opts = {}) {
+  const s = { t: 0, f: PROBE.fc, depth: 160, gain: 0, dr: 60, tgc: [0, 0, 0, 0], frozen: false, sweep: 0, frames: 0, events: [], ...opts };
+  return {
+    s,
+    set(k, v) { s[k] = v; s.events.push({ t: s.t, type: 'set', k, v }); },
+    freeze() { s.frozen = true; s.events.push({ t: s.t, type: 'freeze' }); },
+    scan() { s.frozen = false; s.events.push({ t: s.t, type: 'scan' }); },
+    step(dt) {
+      s.t += dt;
+      if (!s.frozen) { s.sweep += dt * DRAWN * frameRate(s.depth); while (s.sweep >= 1) { s.sweep -= 1; s.frames++; } }
+      return this.read();
+    },
     read() {
-      const o = op(), kw = s.on ? s.kv * s.mA / 1000 : 0;
-      const disc = discC(s.Qa, s.Qh), ring = ringK(s.ring, s.t);
-      const flash = s.on ? flashK(s.kv * s.mA * (1 - xrayShare(s.kv)), o.focus, s.rpm) : 0;
-      return {
-        t: s.t, phase: s.phase, on: s.on, waiting: s.waiting, reason: s.reason,
-        kv: s.kv, maSet: s.ma, ma: s.mA, ms: s.ms, focus: o.focus, spot: FOCUS[o.focus].mm,
-        expT: s.on ? s.expT : s.t1 > s.t0 ? s.t1 - s.t0 : 0, t0: s.t0, t1: s.t1,
-        rpm: s.rpm, rev: s.rev, amps: s.amps, filK: filamentK(s.amps, o.focus),
-        kw, xshare: xrayShare(s.kv), beta: electronBeta(s.kv), kOn: s.on && s.kv > K_EDGE,
-        Q: s.Qa, heat: s.Qa / ANODE.Q, hu: s.Qa / HU, Qh: s.Qh, oil: oilC(s.Qh),
-        disc, trackT: disc + ring + flash, ring, flash,
-        rating: ratingKW(s.ms / 1000, o.focus), lock: interlock(o, s.Qa),
-      };
+      const st = stoneLine(), us = roundTrip(st.d);
+      return { ...s, events: s.events, lambda: lambda(s.f), fps: frameRate(s.depth), line: Math.min(PROBE.lines - 1, Math.floor(s.sweep * PROBE.lines)),
+        stone: { ...st, us }, pen: penetration(s.f), band: band6(s.f) };
     },
   };
-  return api;
 }

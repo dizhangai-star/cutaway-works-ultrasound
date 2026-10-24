@@ -41,10 +41,9 @@ export function hook(mat, { grain = 1, rough = 0.12, cut = true, hatch = true, t
   const MAXC = 6;                                        // clip planes per material (intersection), world space
   mat.userData.cutU = { uCut: { value: Array.from({ length: MAXC }, () => new THREE.Vector4()) }, uCutN: { value: 0 } };
   mat.userData.env = env;
-  mat.userData.dis = { value: 0 };                       // dissolve 0..1 (ghost.js fades a part out before it ghosts)
   mat.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, mat.userData.cutU, { uHatchPeriod: SHARED.uHatchPeriod });
-    Object.assign(shader.uniforms, { uDis: mat.userData.dis, uSection: SHARED.uSection, uHatch: SHARED.uHatch, uHatchWash: SHARED.uHatchWash,
+    Object.assign(shader.uniforms, { uSection: SHARED.uSection, uHatch: SHARED.uHatch, uHatchWash: SHARED.uHatchWash,
       uHeat: SHARED.uHeat, uSpotY: SHARED.uSpotY, uSpin: SHARED.uSpin,
       uGrain: { value: grain }, uRoughVar: { value: rough }, uNScale: { value: scale },
       uBump: { value: bump }, uBScale: { value: bscale }, uTurn: { value: turn } });
@@ -54,13 +53,11 @@ export function hook(mat, { grain = 1, rough = 0.12, cut = true, hatch = true, t
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>
         varying vec3 vXrObj; varying vec3 vXrW;
-        uniform float uDis; uniform float uSection; uniform vec3 uHatch, uHatchWash; uniform float uHeat, uSpotY, uSpin;
+        uniform float uSection; uniform vec3 uHatch, uHatchWash; uniform float uHeat, uSpotY, uSpin;
         uniform vec4 uCut[${MAXC}]; uniform int uCutN; uniform float uHatchPeriod;
         uniform float uGrain, uRoughVar, uNScale, uBump, uBScale, uTurn;
         ${NOISE}`)
       .replace('#include <color_fragment>', `#include <color_fragment>
-        // dissolve: a world-space noise burns the part away (~7 cm blotches with fine edges); uDis = 1 leaves nothing
-        if (uDis > 0.0 && (!gl_FrontFacing || xrNoise(vXrW * 14.0) * 0.8 + xrNoise(vXrW * 70.0) * 0.2 < uDis * 1.02)) discard;   // no inside faces (no hatch) through the holes
         float xrN = xrNoise(vXrObj * uNScale) * 0.6 + xrNoise(vXrObj * uNScale * 3.4) * 0.4;
         float xrBig = xrNoise(vXrObj * uNScale * 0.16);
         diffuseColor.rgb *= mix(1.0, 0.92 + 0.13 * xrN - 0.05 * xrBig, uGrain);`)
@@ -131,7 +128,7 @@ export function setCut(materials, planes, on) {
   SHARED.uSection.value = on ? 1 : 0;
   for (const mat of Object.values(materials)) {
     if (!mat.userData.cuttable) continue;
-    const all = mat.userData.ownCut || [...planes, ...(mat.userData.extraCut || [])];      // ownCut: a part opened by its own planes only
+    const all = [...planes, ...(mat.userData.extraCut || [])];
     mat.clippingPlanes = on ? all : null;
     if (mat.userData.cutU) { mat.userData.cutU.uCutN.value = on ? all.length : 0; all.forEach((p, i) => mat.userData.cutU.uCut.value[i]?.set(p.normal.x, p.normal.y, p.normal.z, p.constant)); }
     mat.clipIntersection = true;
@@ -142,22 +139,6 @@ export function setCut(materials, planes, on) {
 
 /** Parts the cut leaves whole (uncut material) but that lie entirely inside the removed region are hidden with it,
  *  so nothing floats in the opening. A part = a named mesh or named group; `keepWhole` parts stay regardless. */
-/** Sweep the cut in (amount 0 → 1): every plane moves `reach` metres along its normal at 0, so the removed region
- *  grows from nothing into place (a view switch that opens the subject instead of popping). Planes are shared
- *  objects, so the native clipping follows; the hatch uniforms are refreshed here. Call after setCut(…, true). */
-const BASE = new WeakMap();
-export function sweepCut(materials, planes, amount, reach = 1.5, { own = true } = {}) {   // own: false leaves ownCut planes in place
-  const all = new Set(planes);
-  for (const mat of Object.values(materials)) for (const p of [...(own ? mat.userData.ownCut || [] : []), ...(mat.userData.extraCut || [])]) all.add(p);
-  for (const p of all) { if (!BASE.has(p)) BASE.set(p, p.constant); p.constant = BASE.get(p) + (1 - amount) * reach; }
-  if (!own) for (const mat of Object.values(materials)) for (const p of mat.userData.ownCut || []) if (BASE.has(p)) p.constant = BASE.get(p);
-  for (const mat of Object.values(materials)) {
-    const u = mat.userData.cutU; if (!u || !mat.userData.cuttable) continue;
-    const pl = mat.userData.ownCut || [...planes, ...(mat.userData.extraCut || [])];
-    pl.forEach((p, i) => u.uCut.value[i]?.set(p.normal.x, p.normal.y, p.normal.z, p.constant));
-  }
-}
-
 export function hideRemoved(root, planes, on, keepWhole = []) {
   root.updateMatrixWorld(true);
   const box = new THREE.Box3(), c = new THREE.Vector3();

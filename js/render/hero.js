@@ -1,20 +1,20 @@
-// Main 3D view: the tube on the back-lit film base. Rendered with a scissor into the stage rect of the
-// shared full-window canvas (clear alpha 0, so the printed paper shows through).
+// Main 3D view: the probe on its phantom block, on the back-lit film base. Rendered with a scissor into the stage rect
+// of the shared full-window canvas (clear alpha 0, so the printed paper shows through).
 
 import * as THREE from 'three';
-import { DIM } from '../build/tube.js';
+import { DIM } from '../build/probe.js';
 
 export const VIEWS = {
-  housing: { az: 112, el: 13, zoom: 1.0 },
-  cutaway: { az: 116, el: 13, zoom: 1.0 },
-  beam: { az: 98, el: 9, zoom: 1.12 },
-  exploded: { az: 112, el: 20, zoom: 0.64 },
-  // the use shot: the whole set (tube on its column, phantom, detector at SID 180 cm) small on the left of the stage
-  image: { az: 124, el: 8, zoom: 0.172, ty: -0.93, cx: 0.125, cy: 0.49 },
+  // az: camera azimuth from +X toward +Z (the cut side); tx / ty: target offset (m); cx / cy: where the target lands
+  housing: { az: 72, el: 10, zoom: 1.0 },
+  cutaway: { az: 122, el: 15, zoom: 1.0 },
+  beam: { az: 96, el: 6, zoom: 1.15, ty: -0.01 },
+  array: { az: 100, el: 12, zoom: 2.6, ty: -0.03 },
+  section: { az: 90, el: 4, zoom: 1.0 },
 };
-for (const v of Object.values(VIEWS)) { v.ty ??= 0; v.cx ??= 0.5; v.cy ??= 0.43; }
+for (const v of Object.values(VIEWS)) { v.tx ??= 0; v.ty ??= 0; v.cx ??= 0.5; v.cy ??= 0.205; }
 
-export function createHero(renderer, tubeApi) {
+export function createHero(renderer, subject) {
   const scene = new THREE.Scene();
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(studio(), 0.03).texture;
@@ -22,44 +22,43 @@ export function createHero(renderer, tubeApi) {
 
   const hemi = new THREE.HemisphereLight(0xe8f1ff, 0x30363c, 0.5);
   scene.add(hemi);
-  const key = new THREE.DirectionalLight(0xfff0dc, 2.5);
-  key.position.set(-0.9, 2.2, 1.6);
+  const key = new THREE.DirectionalLight(0xfff0dc, 2.4);
+  key.position.set(-0.25, 0.55, 0.45);
+  key.target.position.set(0, 0.04, 0); scene.add(key.target);
   key.castShadow = true;
-  key.shadow.mapSize.set(2048, 2048);
-  Object.assign(key.shadow.camera, { left: -0.5, right: 0.5, top: 0.5, bottom: -0.5, near: 0.5, far: 5 });
-  key.shadow.bias = -0.0003; key.shadow.normalBias = 0.006; key.shadow.radius = 5;
+  key.shadow.mapSize.set(4096, 4096);
+  Object.assign(key.shadow.camera, { left: -0.25, right: 0.25, top: 0.3, bottom: -0.2, near: 0.2, far: 1.6 });
+  key.shadow.bias = -0.0002; key.shadow.normalBias = 0.002; key.shadow.radius = 5;
   scene.add(key);
-  const rim = new THREE.DirectionalLight(0xbcd6ff, 1.6);
-  rim.position.set(1.4, 0.9, -1.8);
+  const rim = new THREE.DirectionalLight(0xbcd6ff, 1.8);
+  rim.position.set(0.4, 0.3, -0.5);
   scene.add(rim);
   const fill = new THREE.DirectionalLight(0xd8e6ee, 0.35);
-  fill.position.set(0.3, -0.4, 2.0);
+  fill.position.set(0.3, -0.05, 0.4);
   scene.add(fill);
-  // warm interior light so the amber oil and the insert read through the cut
-  const inner = new THREE.PointLight(0xffb45a, 0.12, 0.4, 2);
-  inner.position.set(-0.02, 0.02, 0.03);
+  // a soft work light in the open quarter, so the board and stack read under the housing's shadow
+  const inner = new THREE.PointLight(0xfff0dc, 0.09, 0.22, 2);
+  inner.position.set(-0.035, 0.07, 0.07);
   scene.add(inner);
 
-  const shadow = new THREE.Mesh(new THREE.PlaneGeometry(4, 4), new THREE.ShadowMaterial({ color: 0x000000, opacity: 0.5 }));
+  const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.2), new THREE.ShadowMaterial({ color: 0x000000, opacity: 0.5 }));
   shadow.rotation.x = -Math.PI / 2; shadow.position.y = DIM.floor; shadow.receiveShadow = true;
   scene.add(shadow);
-  const contactTex = radialTexture();
-  const contact = new THREE.Mesh(new THREE.PlaneGeometry(0.75, 0.42), new THREE.MeshBasicMaterial({ map: contactTex, transparent: true, depthWrite: false, opacity: 0.8, color: 0x000000 }));
-  contact.rotation.x = -Math.PI / 2; contact.position.y = DIM.floor + 0.0005; contact.renderOrder = -1;
+  const contact = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.14), new THREE.MeshBasicMaterial({ map: radialTexture(), transparent: true, depthWrite: false, opacity: 0.8, color: 0x000000 }));
+  contact.rotation.x = -Math.PI / 2; contact.position.set(0, DIM.floor + 0.0005, 0); contact.renderOrder = -1;
   scene.add(contact);
 
-  scene.add(tubeApi.root);
-  // per-material reflection strength: three uses scene.environmentIntensity unless the material has its own envMap
-  tubeApi.root.traverse((o) => { const m = o.material; if (m?.userData?.env != null && !m.envMap) { m.envMap = scene.environment; m.envMapIntensity = scene.environmentIntensity * m.userData.env; } });
+  scene.add(subject);
+  subject.traverse((o) => { const m = o.material; if (m?.userData?.env != null && !m.envMap) { m.envMap = scene.environment; m.envMapIntensity = scene.environmentIntensity * m.userData.env; } });
 
-  const camera = new THREE.PerspectiveCamera(20, 1, 0.05, 30);
-  const target = new THREE.Vector3(0.0, -0.012, 0);
-  let view = VIEWS.cutaway, dist = 2, ppm = 1000, extra = { az: 0, el: 0, zoom: 1 };
+  const camera = new THREE.PerspectiveCamera(20, 1, 0.01, 10);
+  const T0 = new THREE.Vector3(0, 0.035, 0), target = T0.clone();
+  let view = VIEWS.cutaway, dist = 1, ppm = 1000, extra = { az: 0, el: 0, zoom: 1 };
 
   function place() {
     const az = (view.az + extra.az) * Math.PI / 180, el = (view.el + extra.el) * Math.PI / 180;
     const d = dist / (view.zoom * extra.zoom);
-    target.y = -0.012 + (view.ty || 0);
+    target.set(T0.x + (view.tx || 0), T0.y + (view.ty || 0), T0.z);
     camera.position.set(Math.cos(el) * Math.cos(az), Math.sin(el), Math.cos(el) * Math.sin(az)).multiplyScalar(d).add(target);
     camera.lookAt(target);
   }
@@ -74,13 +73,11 @@ export function createHero(renderer, tubeApi) {
     renderer.toneMappingExposure = dark ? 1.0 : 1.05;
   }
 
-  /** draw into rect (window px, top-left origin); the tube centre lands on `center`; `pxPerM` = scale on screen */
   /** set the camera for rect / center / pxPerM without drawing (project() then answers for this frame) */
   function aim(rect, center, pxPerM) {
     const w = Math.max(1, rect.w), h = Math.max(1, rect.h);
     ppm = pxPerM;
-    const tanHalf = Math.tan(camera.fov * Math.PI / 360);
-    dist = h / (2 * tanHalf * ppm);
+    dist = h / (2 * Math.tan(camera.fov * Math.PI / 360) * ppm);
     place();
     camera.aspect = w / h;
     camera.setViewOffset(w, h, w / 2 - (center.x - rect.x), h / 2 - (center.y - rect.y), w, h);
@@ -89,8 +86,7 @@ export function createHero(renderer, tubeApi) {
   }
   function render(rect, center, pxPerM, viewportH) {
     aim(rect, center, pxPerM);
-    const w = Math.max(1, rect.w), h = Math.max(1, rect.h);
-    const y = viewportH - rect.y - h;
+    const w = Math.max(1, rect.w), h = Math.max(1, rect.h), y = viewportH - rect.y - h;
     renderer.setViewport(rect.x, y, w, h);
     renderer.setScissor(rect.x, y, w, h);
     renderer.render(scene, camera);
@@ -98,25 +94,21 @@ export function createHero(renderer, tubeApi) {
 
   return {
     scene, camera, key, rim, contact, shadow, setTheme, aim, render,
-    /** a view name, or a pose { az, el, zoom } (main.js blends between views) */
     setView(v) { view = typeof v === 'string' ? (VIEWS[v] || VIEWS.cutaway) : v; },
     setExtra(e) { extra = { az: 0, el: 0, zoom: 1, ...e }; },
-    /** world point → window px of the last render */
     project(p, rect) { const q = p.clone().project(camera); return { x: rect.x + (q.x * 0.5 + 0.5) * rect.w, y: rect.y + (1 - (q.y * 0.5 + 0.5)) * rect.h }; },
   };
 }
 
 function radialTexture() {
   const c = document.createElement('canvas'); c.width = c.height = 256;
-  const ctx = c.getContext('2d');
-  const g = ctx.createRadialGradient(128, 128, 6, 128, 128, 128);
+  const ctx = c.getContext('2d'), g = ctx.createRadialGradient(128, 128, 6, 128, 128, 128);
   g.addColorStop(0, 'rgba(255,255,255,0.7)'); g.addColorStop(0.5, 'rgba(255,255,255,0.28)'); g.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = g; ctx.fillRect(0, 0, 256, 256);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 
-/** studio for reflections (generic): dark room, a large warm softbox overhead-left (the key), a tall cool strip
- *  behind-right (the rim), a long low strip in front so cylinders carry a highlight line, a faint floor bounce */
+/** studio for reflections (generic): dark room, warm key softbox, cool rim strip, a long strip for highlight lines */
 function studio() {
   const sc = new THREE.Scene();
   const room = new THREE.Mesh(new THREE.BoxGeometry(12, 8, 12), new THREE.MeshBasicMaterial({ color: 0x8c949b, side: THREE.BackSide }));
@@ -125,10 +117,10 @@ function studio() {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(col).multiplyScalar(k), side: THREE.DoubleSide }));
     m.position.set(...pos); m.lookAt(...look); sc.add(m);
   };
-  panel(4.0, 2.6, 0xfff1de, 5.0, [-1.6, 4.0, 2.0], [0, 0, 0]);       // key softbox
-  panel(0.7, 4.0, 0xcfe0ff, 4.0, [3.2, 1.6, -3.0], [0, 0, 0]);       // rim strip
-  panel(9.0, 0.45, 0xffffff, 6.0, [1.5, 2.8, 2.7], [0, 0, 0]);         // long strip above the camera → highlight line along the housing
-  panel(1.2, 1.2, 0xffe2c0, 1.4, [-4.5, 1.0, -1.0], [0, 0, 0]);      // warm side card
-  panel(8.0, 8.0, 0x22272c, 1.0, [0, -1.9, 0], [0, 1, 0]);           // floor bounce
+  panel(4.0, 2.6, 0xfff1de, 5.0, [-1.6, 4.0, 2.0], [0, 0, 0]);
+  panel(0.7, 4.0, 0xcfe0ff, 4.0, [3.2, 1.6, -3.0], [0, 0, 0]);
+  panel(9.0, 0.45, 0xffffff, 6.0, [1.5, 2.8, 2.7], [0, 0, 0]);
+  panel(1.2, 1.2, 0xffe2c0, 1.4, [-4.5, 1.0, -1.0], [0, 0, 0]);
+  panel(8.0, 8.0, 0x22272c, 1.0, [0, -1.9, 0], [0, 1, 0]);
   return sc;
 }
