@@ -1,6 +1,6 @@
 # B超探头 · 活的技术图版 (ultrasound)
 
-> **Now (2026-10-25):** Sprint 0.5 signed + merged (compare `out/review/compare-s0.5.jpg`); the hero's detail (stack legibility, grip, parting line, cable in frame) goes to Sprint 2. **Next: Sprint 1 plate.** Demo: `ultrasound.html?film=1&shot=main`. Tests: `node --test tests/sim.test.mjs`. Subject files still to rewrite: `SUBJECT.md`.
+> **Now (2026-10-25):** Sprint 0.5 signed + merged (compare `out/review/compare-s0.5.jpg`); the hero's detail (stack legibility, grip, parting line, cable in frame) goes to Sprint 2. Sprint 1 plate built on `s1-plate` (compare `out/review/compare-s1.jpg`), **waiting for sign-off.** Demo: `ultrasound.html?film=1&shot=main`. Tests: `node --test tests/sim.test.mjs`. Subject files still to rewrite: `SUBJECT.md`.
 
 Interactive landscape "technical plate" (1440×900) of **Ultrasound Probe**, one solver driving parts, instruments, live drawings and sound; a scripted demo recorded frame by frame into 1920×1080 60 fps films, zh + en, narrated by local TTS. Method: `~/.claude/skills/plate/references/method.md`.
 
@@ -19,7 +19,7 @@ Interactive landscape "technical plate" (1440×900) of **Ultrasound Probe**, one
 
 - [x] Sprint 0 · Brief 与资料: S1 Lumify-class C5-2, `SOURCES.md`, `BRIEF.md`, B-mode spike, `refs/target.png` = v1b (signed 2026-10-25)
 - [x] Sprint 0.5 · 画面打样 (signed 2026-10-25, hero to S2: probe + stepped cut through the lens, computed B-mode film linked by the red scan line, A-line / pulse / TGC / delay instruments, spec block + penetration chart, four live drawings, zh/en × dark/light; tests 8/8)
-- [ ] Sprint 1 · 图版铺开
+- [ ] Sprint 1 · 图版铺开 (`s1-plate`, built 2026-10-25): all §5 controls (focus 2–15 cm into the beam model + delay chart + focus mark on the film, dynamic range 40–80 dB, 9 MHz linear toggle, TGC ×4 draggable faders), views relabelled to §9 (overview / stack / pulse / freq. / use), keys T L M R, reset = parameters + camera, phone stage taller with the film full width; tests 9/9
 - [ ] Sprint 2 · 模型、材质、剖面
 - [ ] Sprint 3 · Solver 与仪表
 - [ ] Sprint 4 · 晒图、视图、标注、用途镜头
@@ -46,9 +46,13 @@ Interactive landscape "technical plate" (1440×900) of **Ultrasound Probe**, one
 
 ## Skill notes
 
+- S1: `bindFader` (vertical fader) added to the film's `controls.js`; candidate for the skill's template (needs OK).
+
 - S0.5: a series episode starts S0.5 from the previous episode's signed S0.5 commit (`git archive <sha>` of ct: html skeleton, plate.css, hook.js), not from the scaffold's xray files; a convex-array lofted housing came out inside-out the first time (check ring winding: all red hatch = back faces).
 - S0.5: a layered stack thinner than the hatch period never reads in a section; cut it a step deeper (the lens opens in front of the layer faces) so the layers show face-on, and give the macro view to a drawing.
 
 - S0: a quick feasibility spike for the use shot (one Node file → PNG) before the target frame de-risks the episode; a float-overflow LCG gave fake dotty speckle (use Math.imul).
 
 ## Known simplifications
+
+- 9 MHz toggle images a linear probe's frequency on this curved sector (no rectangular linear geometry).

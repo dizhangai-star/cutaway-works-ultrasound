@@ -69,10 +69,11 @@ export function createInstruments(root) {
     plot(c, P.t, P.v, A.X, A.Y, tk.ink, 1.2);
     const x2 = 34 + half + 6, w2 = w - x2 - 10;
     text(c, t('pulse.spec'), x2, 14, F.cond(9.5, 600), tk['ink-2']);
-    const B2 = axes(c, tk, { x: x2, y: 20, w: w2, h: h - 50, x0: 0, x1: 8, y0: 0, y1: 1.1, xt: [0, 2, 4, 6, 8], yt: [0, 0.5, 1], xl: t('pulse.fx'), yf: (v) => v.toFixed(1) });
+    const fx1 = S.f > 6 ? 12 : 8;                      // the 9 MHz comparison needs a wider axis
+    const B2 = axes(c, tk, { x: x2, y: 20, w: w2, h: h - 50, x0: 0, x1: fx1, y0: 0, y1: 1.1, xt: fx1 > 8 ? [0, 3, 6, 9, 12] : [0, 2, 4, 6, 8], yt: [0, 0.5, 1], xl: t('pulse.fx'), yf: (v) => v.toFixed(1) });
     c.fillStyle = alpha(tk.ink, 0.1); c.fillRect(B2.X(PROBE.band[0]), 20, B2.X(PROBE.band[1]) - B2.X(PROBE.band[0]), h - 50);
     text(c, '5–2 MHz', B2.X(5) + 3, h - 36, F.mono(8, 500), tk.ink, 'left');
-    const fs = Array.from({ length: 161 }, (_, i) => i * 0.05);
+    const fs = Array.from({ length: 161 }, (_, i) => i * fx1 / 160);
     plot(c, fs, fs.map((f) => spectrum(f, S.f)), B2.X, B2.Y, tk.ink, 1.3);
     const [lo, hi] = band6(S.f);
     c.strokeStyle = tk.accent; c.setLineDash([2, 2]); c.beginPath(); c.moveTo(B2.X(lo), B2.Y(0.5)); c.lineTo(B2.X(hi), B2.Y(0.5)); c.stroke(); c.setLineDash([]);
@@ -100,7 +101,7 @@ export function createInstruments(root) {
   // ── 4. delay profile: per-element transmit delays for the red line (curved array + focus) ──
   function delayInst(S, tk, sc) {
     const { c, w, h } = prep(cv.delay, sc);
-    const D = delays({ line: S.stone.th }), mx = 6;
+    const D = delays({ line: S.stone.th, focus: S.focus }), mx = 6;
     const { X, Y } = axes(c, tk, { x: 34, y: 8, w: w - 44, h: h - 38, x0: 0.5, x1: 128.5, y0: 0, y1: mx, xt: [1, 32, 64, 96, 128], yt: [0, 2, 4, 6], xl: t('delay.x'), yl: 'µs' });
     for (let i = 0; i < 128; i++) {
       const v = D.d[i], on = i >= D.i0 && i < D.i0 + D.active;
@@ -108,7 +109,7 @@ export function createInstruments(root) {
       const x0 = X(i + 0.6), x1 = X(i + 1.4);
       c.fillRect(x0, Y(on ? v : 0) - (on ? 0 : 1.5), Math.max(0.8, x1 - x0), on ? Y(0) - Y(v) : 1.5);
     }
-    text(c, `${t('delay.focus')} ${PROBE.focus} mm · ${D.active} ${t('delay.active')}`, w - 12, 18, F.cond(9, 600), tk['ink-2'], 'right');
+    text(c, `${t('delay.focus')} ${S.focus} mm · ${D.active} ${t('delay.active')}`, w - 12, 18, F.cond(9, 600), tk['ink-2'], 'right');
   }
 
   // ── left: spec block (S1 values, live cell) and penetration vs frequency (computed, live dot) ──

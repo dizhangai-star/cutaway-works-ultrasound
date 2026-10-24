@@ -337,3 +337,14 @@ html[lang="zh"] .title { font-size: 56px; }
 .col-left .col-ctl { margin-top: auto; }
 .panel.spec { top: 466px; height: 122px; }
 .panel.pen { top: 594px; height: 96px; }
+.ctl-top .slider[data-key="f"] { grid-template-columns: 50px 1fr 46px 38px; }
+.slider .lin { height: 18px; padding: 0 2px; border: 1px solid var(--rule-soft); font: 600 11px/1 "Barlow Condensed", "Noto Sans SC", sans-serif; letter-spacing: 0.04em; color: var(--ink-2); pointer-events: auto; }
+.slider .lin.on { border-color: var(--accent); color: var(--ink); background: rgba(255, 58, 50, 0.14); }
+.slider.off .sl-track, .slider.off .sl-val { opacity: 0.35; }
+.tgc-sl i { cursor: ns-resize; touch-action: none; pointer-events: auto; }
+html.phone .ctl-top .slider[data-key="f"] { grid-template-columns: 50px 1fr 50px 44px; }
+html.phone .slider .lin { height: 28px; font-size: 12.5px; }
+html.phone .tgc-sl i { height: 44px; }
+html.phone .stage { height: 600px; }
+html.phone .bfilm { left: 10px; right: 10px; width: auto; top: 250px; height: 300px; }
+html.phone .narr { bottom: 14px; }

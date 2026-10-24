@@ -48,3 +48,21 @@ export function bindOrbit(el, { drag, wheel }) {
 
 /** two significant figures (10, 12, … 95, 100, 120 …) */
 export const sig2 = (v) => { const p = 10 ** (Math.floor(Math.log10(v)) - 1); return Math.round(v / p) * p; };
+
+/** vertical fader: `el` holds a track (`i`) and a cap (`b`); drag or arrow keys, set(v) gets the snapped value */
+export function bindFader(el, { min, max, snap = (v) => v, set, get, step = 1 }) {
+  const track = el.querySelector('i');
+  const at = (e) => { const r = track.getBoundingClientRect(); const f = 1 - (e.clientY - r.top) / r.height; set(snap(min + (max - min) * Math.min(1, Math.max(0, f)))); };
+  track.tabIndex = 0; track.setAttribute('role', 'slider'); track.setAttribute('aria-orientation', 'vertical');
+  track.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); track.setPointerCapture(e.pointerId); at(e);
+    const mv = (ev) => at(ev);
+    const up = () => { track.removeEventListener('pointermove', mv); track.removeEventListener('pointerup', up); track.removeEventListener('pointercancel', up); };
+    track.addEventListener('pointermove', mv); track.addEventListener('pointerup', up); track.addEventListener('pointercancel', up);
+  });
+  track.addEventListener('keydown', (e) => {
+    const d = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[e.key];
+    if (!d) return;
+    e.preventDefault(); set(snap(Math.min(max, Math.max(min, get() + d * step))));
+  });
+}
