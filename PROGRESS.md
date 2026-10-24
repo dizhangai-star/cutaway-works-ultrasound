@@ -1,6 +1,6 @@
 # B超探头 · 活的技术图版 (ultrasound)
 
-> **Now (2026-10-25):** Sprint 0.5 look test on `s05-look`, waiting for sign-off: `out/review/compare-s0.5.jpg`, stills `out/review/s05-*.jpg`, clip `out/review/s05-clip.mp4`. Page rebuilt on the CT S0.5 furniture (series look B). Open at the gate: the hero (cream housing reads flat, the stack only reads in the ARRAY view). Demo: `ultrasound.html?film=1&shot=main`. Tests: `node --test tests/sim.test.mjs`. Subject files still to rewrite: `SUBJECT.md`.
+> **Now (2026-10-25):** Sprint 0.5 signed + merged (compare `out/review/compare-s0.5.jpg`); the hero's detail (stack legibility, grip, parting line, cable in frame) goes to Sprint 2. **Next: Sprint 1 plate.** Demo: `ultrasound.html?film=1&shot=main`. Tests: `node --test tests/sim.test.mjs`. Subject files still to rewrite: `SUBJECT.md`.
 
 Interactive landscape "technical plate" (1440×900) of **Ultrasound Probe**, one solver driving parts, instruments, live drawings and sound; a scripted demo recorded frame by frame into 1920×1080 60 fps films, zh + en, narrated by local TTS. Method: `~/.claude/skills/plate/references/method.md`.
 
@@ -18,7 +18,7 @@ Interactive landscape "technical plate" (1440×900) of **Ultrasound Probe**, one
 ## Status
 
 - [x] Sprint 0 · Brief 与资料: S1 Lumify-class C5-2, `SOURCES.md`, `BRIEF.md`, B-mode spike, `refs/target.png` = v1b (signed 2026-10-25)
-- [ ] Sprint 0.5 · 画面打样 (built 2026-10-25: probe + stepped cut through the lens, computed B-mode film linked by the red scan line, A-line / pulse / TGC / delay instruments, spec block + penetration chart, four live drawings, zh/en × dark/light; tests 8/8)
+- [x] Sprint 0.5 · 画面打样 (signed 2026-10-25, hero to S2: probe + stepped cut through the lens, computed B-mode film linked by the red scan line, A-line / pulse / TGC / delay instruments, spec block + penetration chart, four live drawings, zh/en × dark/light; tests 8/8)
 - [ ] Sprint 1 · 图版铺开
 - [ ] Sprint 2 · 模型、材质、剖面
 - [ ] Sprint 3 · Solver 与仪表
