@@ -1,6 +1,6 @@
 # B超探头 · 活的技术图版 (ultrasound)
 
-> **Now (2026-10-24):** Sprint 0 on `s0-brief`: BRIEF, SOURCES, feasibility spike (`tools/spike/bmode.mjs`, `out/review/spike-bmode*.png`) done; target frame `refs/concept/A-series/v1{a,b}.png` waiting for sign-off. **Next: sign target → merge → Sprint 0.5 look test.** Demo: `ultrasound.html?film=1&shot=main`. Tests: `node --test tests/sim.test.mjs`. Subject files still to rewrite: `SUBJECT.md`.
+> **Now (2026-10-24):** Sprint 0 on `s0-brief`: BRIEF, SOURCES, feasibility spike (`tools/spike/bmode.mjs`, `out/review/spike-bmode*.png`) done; target = v1b (signed 2026-10-25, merged to main). **Next: Sprint 0.5 look test.** Demo: `ultrasound.html?film=1&shot=main`. Tests: `node --test tests/sim.test.mjs`. Subject files still to rewrite: `SUBJECT.md`.
 
 Interactive landscape "technical plate" (1440×900) of **Ultrasound Probe**, one solver driving parts, instruments, live drawings and sound; a scripted demo recorded frame by frame into 1920×1080 60 fps films, zh + en, narrated by local TTS. Method: `~/.claude/skills/plate/references/method.md`.
 
@@ -17,7 +17,7 @@ Interactive landscape "technical plate" (1440×900) of **Ultrasound Probe**, one
 
 ## Status
 
-- [ ] Sprint 0 · Brief 与资料
+- [x] Sprint 0 · Brief 与资料: S1 Lumify-class C5-2, `SOURCES.md`, `BRIEF.md`, B-mode spike, `refs/target.png` = v1b (signed 2026-10-25)
 - [ ] Sprint 0.5 · 画面打样
 - [ ] Sprint 1 · 图版铺开
 - [ ] Sprint 2 · 模型、材质、剖面
