@@ -348,3 +348,7 @@ html.phone .tgc-sl i { height: 44px; }
 html.phone .stage { height: 600px; }
 html.phone .bfilm { left: 10px; right: 10px; width: auto; top: 250px; height: 300px; }
 html.phone .narr { bottom: 14px; }
+/* S1: focus + dynamic range rows added; the column grows 18 px into the spec panel, sliders a little tighter */
+html:not(.phone) .col-left { height: 430px; }
+html:not(.phone) .panel.spec { top: 484px; height: 104px; }
+html:not(.phone) .ctl-top .sliders { gap: 4px; }
