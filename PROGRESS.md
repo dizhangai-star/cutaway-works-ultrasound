@@ -1,6 +1,6 @@
 # B超探头 · 活的技术图版 (ultrasound)
 
-> **Now (2026-10-25):** Sprint 0.5 signed + merged (compare `out/review/compare-s0.5.jpg`); the hero's detail (stack legibility, grip, parting line, cable in frame) goes to Sprint 2. Sprint 1 signed + merged (PR #2, compare `out/review/compare-s1.jpg`). Sprint 2a signed + merged (gate `out/review/s2a-tt-housing.jpg`, `s2a-tt-cutaway.jpg`, `s2a-{dark,light}-zh-3.0.jpg`). Sprint 2b signed + merged (PR #4, compare `out/review/compare-s2.jpg`). **Next: Sprint 3 solver.** Demo: `ultrasound.html?film=1&shot=main`. Tests: `node --test tests/sim.test.mjs`. Subject files still to rewrite: `SUBJECT.md`.
+> **Now (2026-10-25):** Sprint 0.5 signed + merged (compare `out/review/compare-s0.5.jpg`); the hero's detail (stack legibility, grip, parting line, cable in frame) goes to Sprint 2. Sprint 1 signed + merged (PR #2, compare `out/review/compare-s1.jpg`). Sprint 2a signed + merged (gate `out/review/s2a-tt-housing.jpg`, `s2a-tt-cutaway.jpg`, `s2a-{dark,light}-zh-3.0.jpg`). Sprint 2b signed + merged (PR #4, compare `out/review/compare-s2.jpg`). Sprint 3 solver built on `s3-solver` (still `out/review/s3-dark-en-3.0.jpg`), signed + merged (PR #5). **Next: Sprint 4 views + use shot.** Demo: `ultrasound.html?film=1&shot=main`. Tests: `node --test tests/sim.test.mjs`. Subject files still to rewrite: `SUBJECT.md`.
 
 Interactive landscape "technical plate" (1440×900) of **Ultrasound Probe**, one solver driving parts, instruments, live drawings and sound; a scripted demo recorded frame by frame into 1920×1080 60 fps films, zh + en, narrated by local TTS. Method: `~/.claude/skills/plate/references/method.md`.
 
@@ -23,7 +23,7 @@ Interactive landscape "technical plate" (1440×900) of **Ultrasound Probe**, one
 - [x] Sprint 2 · 模型、材质、剖面 (split 2a / 2b as ct)
   - [x] 2a · 部件与审计 (`s2a-model`, signed + merged 2026-10-25): audit ported (ground = acoustic lens; the clear phantom block is not audited); baseline 19 parts, 5 overlaps (PZT × backing bevel, lens corners through the nose wall, flex, strain relief), 2 floating; now **35 named parts / 44 meshes, 0 open, 0 overlaps, 0 floating at h 0.3 mm**. New: nose cone + front / back shells parted at z = 0 (`shellGeometry`), grip inserts ×2 (cut with the housing), blank label, seal ring, array frame cheeks ×2, epoxy fill, flex clamp, PCB screws ×4 on back-shell bosses, thermal pad, cable gland, hollow strain relief, capped cable, shield braid, cable conductors; lens ends rounded in plan to sit inside the nose
   - [x] 2b · 材质、光、取景 (`s2b-look`, signed + merged 2026-10-25, PR #4; audit still zero, tests 9/9): views re-framed (cutaway: nose above the film; array: stack face-on, kerfs + both matching layers read; housing: zoomed out, whole probe + cable); rim 1.8 → 1.0, key 2.1, inner work light 0.16; housing cooler, env 0.6, no sheen; PCB darker; lens grey-blue; lens / matching callouts moved to the cut side; cable re-routed to bend sideways after the strain relief (*modelled*)
-- [ ] Sprint 3 · Solver 与仪表
+- [x] Sprint 3 · Solver 与仪表 (`s3-solver`, signed + merged 2026-10-25, PR #5): white point frozen (`REF` 18.8, gain moves the picture: +6 dB = +6.0 dB tested); bile α 0.2 → 0.05 (bile ≈ water), posterior enhancement 4.4 → 7.0 dB; shadow width 16.5 mm at 10.5 cm = stone Ø 13 × sector divergence (tested); hook reconciled to 13 mm; readings 91 µs / 7.0 cm / 0.44 mm / 38 fps / 17 cm; tests 10/10; DAS not done (beam model stays)
 - [ ] Sprint 4 · 晒图、视图、标注、用途镜头
 - [ ] Sprint 5 · 口播稿 → 口播 → 演示录制
 - [ ] Sprint 6 · 声音、混音、渲染
@@ -42,16 +42,15 @@ Interactive landscape "technical plate" (1440×900) of **Ultrasound Probe**, one
 - 2026-10-25 (user, S2b): probe stays upright; the cable shows only in the zoomed-out housing view.
 - S2b: housing keeps a faint cream cast under the warm key (NeutralToneMapping).
 
-- S0.5: hook says "6 mm stone", the phantom stone is Ø 13 mm (BRIEF §3): reconcile in S3.
-- S0.5: the B-mode white point comes from each image's 99.5th percentile (gain still moves it); S3 fixes it to a constant.
 
 - Element count / pitch / outline need a document (service manual, FCC filing, teardown); else stay *modelled*.
-- Tissue table: pick one primary source (Duck / Szabo) in S3.
-- Posterior enhancement weak in the spike (≈ 6 dB); tune in S3.
+- Tissue table (α / Z) still *modelled* from S2 ranges: no primary table checked page by page yet (Duck 1990 / Szabo App. B); do before S5 narration quotes any tissue number.
 
 ## Notes
 
 ## Skill notes
+
+- S3: freeze the log-compression white point to a constant measured once from the default image; a per-image percentile cancels the gain control. Test geometric claims (shadow width × sector divergence) against the solver, not by eye.
 
 - S2b: with the B-mode film fixed on the lower stage, only ≈ 290 px of stage remain for the hero; a vertical subject cannot show the head and the cable at one scale, so each view carries its own zoom / cy (head views tight, one zoomed-out view for the whole object).
 

@@ -35,7 +35,7 @@ export const TISSUE = {
   fat:    { a: 0.6, Z: 1.38, s: 0.35 },
   muscle: { a: 1.0, Z: 1.70, s: 0.9 },
   liver:  { a: 0.5, Z: 1.65, s: 1.0 },
-  bile:   { a: 0.2, Z: 1.52, s: 0.0 },
+  bile:   { a: 0.05, Z: 1.52, s: 0.0 },
   stone:  { a: 30, Z: 3.0, s: 0.3 },
   kidney: { a: 0.8, Z: 1.62, s: 0.55 },
 };
@@ -101,6 +101,10 @@ export function delays({ line = 0, focus = PROBE.focus, active = 64 } = {}) {
   return { d: out, i0, active };
 }
 
+/** white point of the log compression: the 99.5th-percentile echo × 2.5 of the default image (3.5 MHz, 16 cm,
+ *  gain 0), measured once and frozen (S3) so every control moves the picture against one scale. */
+export const REF = 18.8;
+
 // ── the B-mode image ───────────────────────────────────────────────────────────
 let seed = 12345;
 const rand = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296);
@@ -156,10 +160,7 @@ export function bmode({ f = PROBE.fc, depth = 160, lines = 192, gain = 0, tgcPts
       rx[s] += Math.hypot(ei, eq) / lines;
     }
   }
-  // white point: from the default-gain image, so the gain control moves the picture (S3 fixes it to a constant)
-  const smp = []; for (let i = 0; i < env.length; i += 37) if (env[i] > 0) smp.push(env[i]);
-  smp.sort((a, b) => a - b);
-  const ref = smp[Math.floor(smp.length * 0.995)] * 2.5 / 10 ** (gain / 20);
+  const ref = REF;                                   // fixed white point: gain, TGC and f move the picture
   return { f, depth, lines, NS, dz, dth, env, rf, ref, rx: Array.from(rx, (v) => 20 * Math.log10(v / ref + 1e-12)), noise: 20 * Math.log10(NOISE * 1.25 / ref) };
 }
 
