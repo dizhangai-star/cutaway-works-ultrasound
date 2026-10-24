@@ -31,6 +31,7 @@ Interactive landscape "technical plate" (1440×900) of **Ultrasound Probe**, one
 
 - 2026-10-24: subject = abdominal curved-array probe, use shot = gallstone with acoustic shadow (series line: CT misses many stones, ultrasound misses the lung nodule). Episode No. 03, before MRI.
 - Reference S1 = handheld 5–2 MHz curved array, beamformer in the probe (FOV 67.5°, ROC 50 mm, aperture 60 mm); element count *modelled* 128.
+- 2026-10-25: the B-mode film stays on the plate in every view (it is the probe's read-out); S4 makes view 5 「用途」 the reveal (push in on the film, stone + shadow called out, the phantom explained); the film hides or shows it per demo.json.
 - Imaging solver = line-by-line beam model on point scatterers (S0 spike, 2.2 s / frame Node), computed per parameter change; true DAS optional in S3.
 
 ## Open
