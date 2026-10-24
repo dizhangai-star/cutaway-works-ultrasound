@@ -53,3 +53,13 @@ test('B-mode: anechoic bile, bright stone surface, shadow under the stone', () =
   assert.ok(stone > liver + 6, `stone ${stone} vs liver ${liver}`);
   assert.ok(shadow < beside - 15, `shadow ${shadow} vs beside ${beside}`);
 });
+
+test('S1 controls: 9 MHz toggle images at 9 MHz, focus moves the delay curve', () => {
+  const sim = X.createSim({ f: 3.5 });
+  sim.set('lin', true);
+  const r = sim.read();
+  near(r.f, 9, 1e-9, 'imaged f'); near(r.fDial, 3.5, 1e-9, 'dial f');
+  assert.ok(r.pen < X.penetration(3.5), '9 MHz shallower');
+  const d = (focus) => Math.max(...X.delays({ focus }).d);
+  assert.ok(d(30) > d(120), `near focus = more delay spread: ${d(30)} vs ${d(120)}`);
+});

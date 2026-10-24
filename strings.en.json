@@ -1,7 +1,12 @@
 {
   "doc.title": "Ultrasound Probe · a live technical plate",
   "head.left": "CUTAWAY WORKS · ULTRASOUND PROBE",
-  "head.tags": ["PIEZO ARRAY", "PULSE-ECHO", "BEAMFORMING", "B-MODE IMAGE"],
+  "head.tags": [
+    "PIEZO ARRAY",
+    "PULSE-ECHO",
+    "BEAMFORMING",
+    "B-MODE IMAGE"
+  ],
   "head.sheet": "No. 03",
   "kicker": "PULSE-ECHO IMAGING",
   "title": "ULTRASOUND PROBE",
@@ -13,11 +18,11 @@
   "ctl.depth": "DEPTH",
   "ctl.gain": "GAIN",
   "ctl.tgc": "TGC dB",
-  "view.housing": "HOUSING",
-  "view.cutaway": "CUTAWAY",
-  "view.beam": "BEAM",
-  "view.array": "ARRAY",
-  "view.section": "SECTION",
+  "view.housing": "OVERVIEW",
+  "view.cutaway": "STACK",
+  "view.beam": "PULSE",
+  "view.array": "FREQ.",
+  "view.section": "USE",
   "ctl.slow": "SLOW-MO",
   "ctl.sound": "SOUND",
   "ctl.reset": "RESET",
@@ -92,5 +97,10 @@
   "narr.depth": "13 µs later means 1 cm deeper.",
   "narr.stone": "The stone stops the sound; below it, black.",
   "narr.frozen": "Frozen: one frame, 128 lines, one pulse each.",
-  "narr.signoff": "Cutaway Works. Making the invisible visible."
+  "narr.signoff": "Cutaway Works. Making the invisible visible.",
+  "ctl.focus": "FOCUS",
+  "ctl.dr": "D. RANGE",
+  "ctl.lin": "9 MHz",
+  "ctl.lin.t": "A linear probe's 9 MHz on this sector: sharper, shallower",
+  "ctl.reset.t": "Reset parameters and camera (R)"
 }

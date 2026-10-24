@@ -107,10 +107,10 @@ const rand = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 429
 const gauss = () => Math.sqrt(-2 * Math.log(rand() + 1e-12)) * Math.cos(2 * Math.PI * rand());
 
 /** RF + envelope per line. Deterministic (fixed seed). ≈ 2 s at 3.5 MHz, 160 mm, 192 lines (Node, one core). */
-export function bmode({ f = PROBE.fc, depth = 160, lines = 192, gain = 0, tgcPts = [0, 0, 0, 0], density = 600000 / 160 } = {}) {
+export function bmode({ f = PROBE.fc, depth = 160, lines = 192, gain = 0, tgcPts = [0, 0, 0, 0], focus = PROBE.focus, density = 600000 / 160 } = {}) {
   seed = 12345;
   const R = PROBE.roc, FOV = PROBE.fov, lam = lambda(f), k2 = 4 * Math.PI / lam;
-  const sigZ = 0.25 * lam / PROBE.bw, focus = PROBE.focus, Fnum = 2.5, sig0 = 0.42 * lam * Fnum, AP = PROBE.rxAp;
+  const sigZ = 0.25 * lam / PROBE.bw, Fnum = 2.5, sig0 = 0.42 * lam * Fnum, AP = PROBE.rxAp;
   const dz = 0.05, NS = Math.round(depth / dz), dth = FOV / (lines - 1);
   const I = new Float32Array(lines * NS);
   const Q = new Float32Array(lines * NS);
@@ -187,8 +187,9 @@ export function sectorPx(depth, W, H, top = 2) {
 // ── session: freeze / scan, parameters, the drawn sweep ────────────────────────
 // The real frame takes 27 ms at 16 cm (37 fps): far too fast to watch, so the sweep is drawn at 1/100 speed.
 export const DRAWN = 1 / 100;
+export const LINEAR_F = 9;           // MHz, typical linear-array centre (modelled)
 export function createSim(opts = {}) {
-  const s = { t: 0, f: PROBE.fc, depth: 160, gain: 0, dr: 60, tgc: [0, 0, 0, 0], frozen: false, sweep: 0, frames: 0, events: [], ...opts };
+  const s = { t: 0, f: PROBE.fc, lin: false, depth: 160, focus: PROBE.focus, gain: 0, dr: 60, tgc: [0, 0, 0, 0], frozen: false, sweep: 0, frames: 0, events: [], ...opts };
   return {
     s,
     set(k, v) { s[k] = v; s.events.push({ t: s.t, type: 'set', k, v }); },
@@ -200,9 +201,10 @@ export function createSim(opts = {}) {
       return this.read();
     },
     read() {
-      const st = stoneLine(), us = roundTrip(st.d);
-      return { ...s, events: s.events, lambda: lambda(s.f), fps: frameRate(s.depth), line: Math.min(PROBE.lines - 1, Math.floor(s.sweep * PROBE.lines)),
-        stone: { ...st, us }, pen: penetration(s.f), band: band6(s.f) };
+      // LINEAR: the 9 MHz comparison (a linear probe's frequency on this sector, BRIEF §5); f is the one imaged
+      const st = stoneLine(), us = roundTrip(st.d), f = s.lin ? LINEAR_F : s.f;
+      return { ...s, f, fDial: s.f, events: s.events, lambda: lambda(f), fps: frameRate(s.depth), line: Math.min(PROBE.lines - 1, Math.floor(s.sweep * PROBE.lines)),
+        stone: { ...st, us }, pen: penetration(f), band: band6(f) };
     },
   };
 }

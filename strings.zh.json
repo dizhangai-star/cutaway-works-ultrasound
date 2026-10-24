@@ -1,7 +1,12 @@
 {
   "doc.title": "B超探头 · 活的技术图版",
   "head.left": "剖面影像工坊 · B超探头",
-  "head.tags": ["压电阵列", "脉冲回波", "波束合成", "B 型图像"],
+  "head.tags": [
+    "压电阵列",
+    "脉冲回波",
+    "波束合成",
+    "B 型图像"
+  ],
   "head.sheet": "No. 03",
   "kicker": "脉冲回波成像",
   "title": "B超探头",
@@ -13,11 +18,11 @@
   "ctl.depth": "深度",
   "ctl.gain": "增益",
   "ctl.tgc": "TGC dB",
-  "view.housing": "外壳",
-  "view.cutaway": "剖视",
-  "view.beam": "声束",
-  "view.array": "阵列",
-  "view.section": "剖面",
+  "view.housing": "总览",
+  "view.cutaway": "叠层",
+  "view.beam": "脉冲",
+  "view.array": "频率",
+  "view.section": "用途",
   "ctl.slow": "慢放",
   "ctl.sound": "声音",
   "ctl.reset": "复位",
@@ -92,5 +97,10 @@
   "narr.depth": "回声晚 13 微秒，就是深 1 厘米。",
   "narr.stone": "石头把声音全挡住，下面一片黑。",
   "narr.frozen": "冻结：一帧 128 条线，每条一个脉冲。",
-  "narr.signoff": "剖面影像工坊，让看不见的原理被看见。"
+  "narr.signoff": "剖面影像工坊，让看不见的原理被看见。",
+  "ctl.focus": "焦点",
+  "ctl.dr": "动态",
+  "ctl.lin": "9 MHz",
+  "ctl.lin.t": "线阵探头的 9 MHz 用在这个扇面上：更清楚，更浅",
+  "ctl.reset.t": "参数与视角复位 (R)"
 }

@@ -15,7 +15,7 @@ import { createInstruments } from './ui/instruments.js';
 import { dim, centre, label } from './ui/dims.js';
 import { createClock } from './film.js';
 import { createLayout } from './layout.js';
-import { bindSlider, bindOrbit } from './ui/controls.js';
+import { bindSlider, bindFader, bindOrbit } from './ui/controls.js';
 import { createSim, bmode, scanConvert, sectorPx, toXY, PROBE, PH } from './sim.js';
 import { createCallouts } from './ui/callouts.js';
 
@@ -110,7 +110,7 @@ onTheme((tk) => {
 onLang(() => { drawings.redrawOverlays(); bmarksKey = ''; });
 
 // ── state: the solver, driven by a log of commands (pure in t: seeking back replays the log from 0) ────────
-const DEF = { f: 3.5, depth: 160, gain: 0, tgc: [0, 0, 0, 0] };
+const DEF = { f: 3.5, lin: false, depth: 160, focus: 70, gain: 0, dr: 60, tgc: [0, 0, 0, 0] };
 const P = { ...DEF, tgc: [...DEF.tgc] };
 const log = [];
 let sim;
@@ -127,12 +127,14 @@ function advance(tt) {
   if (tt > sim.s.t) sim.step(tt - sim.s.t);
 }
 function cmd(k, p, v) { log.push({ t: now(), k, p, v }); log.sort((a, b) => a.t - b.t); advance(now()); }
-function setParam(k, v) { if (P[k] === v) return; P[k] = v; cmd('set', k, v); }
+function setParam(k, v) { if (P[k] === v) return; P[k] = Array.isArray(v) ? [...v] : v; cmd('set', k, Array.isArray(v) ? [...v] : v); }
+const setTgc = (i, v) => { if (P.tgc[i] === v) return; const a = [...P.tgc]; a[i] = v; setParam('tgc', a); };
+function resetAll() { for (const k of Object.keys(DEF)) if (JSON.stringify(P[k]) !== JSON.stringify(DEF[k])) setParam(k, DEF[k]); resetOrbit(); }
 reset();
 
 // ── the B-mode image: computed once per parameter change (≈ 2 s), never per frame ──
 let B = null, bKey = '', bimgKey = '', bmarksKey = '', off = null;
-const bParams = (S) => ({ f: S.f, depth: S.depth, gain: S.gain, tgcPts: S.tgc });
+const bParams = (S) => ({ f: S.f, depth: S.depth, focus: S.focus, gain: S.gain, tgcPts: S.tgc });
 function ensureB(S, sync) {
   const key = JSON.stringify(bParams(S));
   if (key === bKey) return;
@@ -177,11 +179,15 @@ const FSTEP = [2, 2.5, 3, 3.5, 4, 4.5, 5];
 const SL = {
   f: bindSlider(document.querySelector('[data-key="f"]'), { min: 2, max: 5, snap: (v) => Math.round(v * 2) / 2, get: () => P.f, set: (v) => setParam('f', v) }),
   depth: bindSlider(document.querySelector('[data-key="depth"]'), { min: 40, max: 300, snap: (v) => Math.round(v / 10) * 10, get: () => P.depth, set: (v) => setParam('depth', v) }),
+  focus: bindSlider(document.querySelector('[data-key="focus"]'), { min: 20, max: 150, snap: (v) => Math.round(v / 10) * 10, get: () => P.focus, set: (v) => setParam('focus', v) }),
   gain: bindSlider(document.querySelector('[data-key="gain"]'), { min: -20, max: 20, snap: (v) => Math.round(v), get: () => P.gain, set: (v) => setParam('gain', v) }),
+  dr: bindSlider(document.querySelector('[data-key="dr"]'), { min: 40, max: 80, snap: (v) => Math.round(v / 5) * 5, get: () => P.dr, set: (v) => setParam('dr', v) }),
 };
 void FSTEP;
+document.querySelector('[data-act="lin"]').onclick = () => setParam('lin', !P.lin);
 const tgcEl = document.getElementById('tgc-sl');
 tgcEl.innerHTML = [0, 1, 2, 3].map((i) => `<div><i><b></b></i><span><em>T${i + 1}</em><em class="tv"></em></span></div>`).join('');
+tgcEl.querySelectorAll('div').forEach((d, i) => bindFader(d, { min: -20, max: 20, snap: (v) => Math.round(v), get: () => P.tgc[i], set: (v) => setTgc(i, v) }));
 const knob = document.querySelector('[data-act="freeze"]');
 const pressKnob = () => (sim.read().frozen ? cmd('scan') : cmd('freeze'));
 knob.onclick = pressKnob;
@@ -189,7 +195,7 @@ knob.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDef
 document.querySelectorAll('.views button').forEach((b) => (b.onclick = () => setView(b.dataset.view)));
 document.querySelector('[data-act="slow"]').onclick = () => toggle('slow');
 document.querySelector('[data-act="sound"]').onclick = () => toggle('sound');
-document.querySelector('[data-act="reset"]').onclick = resetOrbit;
+document.querySelector('[data-act="reset"]').onclick = resetAll;
 document.querySelector('[data-act="theme"]').onclick = () => toggleTheme();
 document.querySelector('[data-act="lang"]').onclick = () => toggleLang();
 const KEYVIEW = ['housing', 'cutaway', 'beam', 'array', 'section'];
@@ -198,12 +204,16 @@ window.addEventListener('keydown', (e) => {
   if (e.key === ' ' && !e.target.closest?.('button, .knob')) { e.preventDefault(); pressKnob(); }
   else if (KEYVIEW[+e.key - 1]) setView(KEYVIEW[+e.key - 1]);
   else if (e.key === 's' || e.key === 'S') toggle('slow');
+  else if (e.key === 't' || e.key === 'T') toggleTheme();
+  else if (e.key === 'l' || e.key === 'L') toggleLang();
+  else if (e.key === 'm' || e.key === 'M') toggle('sound');
+  else if (e.key === 'r' || e.key === 'R') resetAll();
 });
 bindOrbit(document.getElementById('stage'), {
   drag: (dx, dy) => { const o = ui.orbit; o.az += dx * 0.3; o.el = Math.min(30, Math.max(-12, o.el + dy * 0.2)); },
   wheel: (dy) => { const o = ui.orbit; o.zoom = Math.min(1.8, Math.max(0.7, o.zoom * Math.exp(-dy * 0.001))); },
 });
-window.__plate = { set: setParam, freeze: () => cmd('freeze'), scan: () => cmd('scan'), view: setView,
+window.__plate = { set: setParam, tgc: setTgc, resetAll, freeze: () => cmd('freeze'), scan: () => cmd('scan'), view: setView,
   slow: (on) => toggle('slow', on), orbit: (o) => Object.assign(ui.orbit, o), reset: resetOrbit, P, ui, get sim() { return sim; }, debug: { G, hero, fx, drawings, get B() { return B; } } };
 
 // ── layout ──────────────────────────────────────────────────────────────────
@@ -222,10 +232,10 @@ const toFilm = (g, x, y) => [g.W / 2 + x / g.px, TOP + y / g.px];
 function drawFilm(S) {
   if (!B) return;
   const g = filmGeom(), k = Math.min(window.devicePixelRatio || 1, 2) * L.scale, W = Math.round(g.W * k), H = Math.round(g.H * k);
-  const key = `${bKey}-${W}-${H}`;
+  const key = `${bKey}-${S.dr}-${W}-${H}`;
   if (key !== bimgKey) {
     off = document.createElement('canvas'); off.width = W; off.height = H;
-    const img = new ImageData(scanConvert(B, W, H, { top: TOP * k }), W, H); off.getContext('2d').putImageData(img, 0, 0);
+    const img = new ImageData(scanConvert(B, W, H, { top: TOP * k, dr: S.dr }), W, H); off.getContext('2d').putImageData(img, 0, 0);
     bimgKey = key; bmarksKey = '';
   }
   if (bimg.width !== W || bimg.height !== H) { bimg.width = W; bimg.height = H; }
@@ -238,6 +248,9 @@ function drawFilm(S) {
     const a = toFilm(g, ...toXY(th, 0)), b = toFilm(g, ...toXY(th, B.depth));
     c.strokeStyle = 'rgba(220, 240, 255, 0.28)'; c.lineWidth = 1.2; c.beginPath(); c.moveTo(...a); c.lineTo(...b); c.stroke();
   }
+  // transmit focus: a small red mark on the right edge at the focal depth, as on a scanner
+  const fy = TOP + S.focus / g.px;
+  if (S.focus < B.depth) { c.fillStyle = 'rgba(255, 58, 50, 0.95)'; c.beginPath(); c.moveTo(g.W - 34, fy); c.lineTo(g.W - 27, fy - 4); c.lineTo(g.W - 27, fy + 4); c.fill(); }
   // the red line through the stone
   const a = toFilm(g, ...toXY(S.stone.th, 0)), b = toFilm(g, ...toXY(S.stone.th, B.depth));
   c.strokeStyle = 'rgba(255, 58, 50, 0.9)'; c.lineWidth = 1; c.setLineDash([4, 3]); c.beginPath(); c.moveTo(...a); c.lineTo(...b); c.stroke(); c.setLineDash([]);
@@ -272,6 +285,9 @@ const card = document.getElementById('card');
 const narr = document.getElementById('narr');
 function drawUI(S) {
   SL.f.draw(P.f, `${num(P.f, 1)} MHz`); SL.depth.draw(P.depth, `${num(P.depth / 10)} cm`); SL.gain.draw(P.gain, `${P.gain > 0 ? '+' : ''}${P.gain} dB`);
+  SL.focus.draw(P.focus, `${num(P.focus / 10)} cm`); SL.dr.draw(P.dr, `${P.dr} dB`);
+  document.querySelector('[data-act="lin"]').classList.toggle('on', P.lin);
+  document.querySelector('[data-key="f"]').classList.toggle('off', P.lin);
   tgcEl.querySelectorAll('div').forEach((d, i) => { d.querySelector('b').style.top = `${50 - S.tgc[i] * 2.5}%`; d.querySelector('.tv').textContent = `${S.tgc[i] > 0 ? '+' : ''}${S.tgc[i]}`; });
   document.querySelector('.knob-cap i').style.transform = `rotate(${S.frozen ? -40 : 40}deg)`;
   document.documentElement.classList.toggle('frozen', S.frozen);
