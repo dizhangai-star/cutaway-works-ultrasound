@@ -1,6 +1,6 @@
 # B超探头 · 活的技术图版 (ultrasound)
 
-> **Now (2026-10-25):** Sprint 0.5 signed + merged (compare `out/review/compare-s0.5.jpg`); the hero's detail (stack legibility, grip, parting line, cable in frame) goes to Sprint 2. Sprint 1 signed + merged (PR #2, compare `out/review/compare-s1.jpg`). **Next: Sprint 2 model + look** (split 2a / 2b as ct). Demo: `ultrasound.html?film=1&shot=main`. Tests: `node --test tests/sim.test.mjs`. Subject files still to rewrite: `SUBJECT.md`.
+> **Now (2026-10-25):** Sprint 0.5 signed + merged (compare `out/review/compare-s0.5.jpg`); the hero's detail (stack legibility, grip, parting line, cable in frame) goes to Sprint 2. Sprint 1 signed + merged (PR #2, compare `out/review/compare-s1.jpg`). **Now: Sprint 2a** (`s2a-model`, waiting for sign-off; gate `out/review/s2a-tt-housing.jpg`, `s2a-tt-cutaway.jpg`, `s2a-{dark,light}-zh-3.0.jpg`), then 2b look. Demo: `ultrasound.html?film=1&shot=main`. Tests: `node --test tests/sim.test.mjs`. Subject files still to rewrite: `SUBJECT.md`.
 
 Interactive landscape "technical plate" (1440×900) of **Ultrasound Probe**, one solver driving parts, instruments, live drawings and sound; a scripted demo recorded frame by frame into 1920×1080 60 fps films, zh + en, narrated by local TTS. Method: `~/.claude/skills/plate/references/method.md`.
 
@@ -20,7 +20,9 @@ Interactive landscape "technical plate" (1440×900) of **Ultrasound Probe**, one
 - [x] Sprint 0 · Brief 与资料: S1 Lumify-class C5-2, `SOURCES.md`, `BRIEF.md`, B-mode spike, `refs/target.png` = v1b (signed 2026-10-25)
 - [x] Sprint 0.5 · 画面打样 (signed 2026-10-25, hero to S2: probe + stepped cut through the lens, computed B-mode film linked by the red scan line, A-line / pulse / TGC / delay instruments, spec block + penetration chart, four live drawings, zh/en × dark/light; tests 8/8)
 - [x] Sprint 1 · 图版铺开 (`s1-plate`, signed + merged 2026-10-25, PR #2): all §5 controls (focus 2–15 cm into the beam model + delay chart + focus mark on the film, dynamic range 40–80 dB, 9 MHz linear toggle, TGC ×4 draggable faders), views relabelled to §9 (overview / stack / pulse / freq. / use), keys T L M R, reset = parameters + camera, phone stage taller with the film full width; tests 9/9
-- [ ] Sprint 2 · 模型、材质、剖面
+- [ ] Sprint 2 · 模型、材质、剖面 (split 2a / 2b as ct)
+  - [ ] 2a · 部件与审计 (`s2a-model`): audit ported (ground = acoustic lens; the clear phantom block is not audited); baseline 19 parts, 5 overlaps (PZT × backing bevel, lens corners through the nose wall, flex, strain relief), 2 floating; now **35 named parts / 44 meshes, 0 open, 0 overlaps, 0 floating at h 0.3 mm**. New: nose cone + front / back shells parted at z = 0 (`shellGeometry`), grip inserts ×2 (cut with the housing), blank label, seal ring, array frame cheeks ×2, epoxy fill, flex clamp, PCB screws ×4 on back-shell bosses, thermal pad, cable gland, hollow strain relief, capped cable, shield braid, cable conductors; lens ends rounded in plan to sit inside the nose
+  - [ ] 2b · 材质、光、取景 (stack legibility, cable in frame, materials, light both themes)
 - [ ] Sprint 3 · Solver 与仪表
 - [ ] Sprint 4 · 晒图、视图、标注、用途镜头
 - [ ] Sprint 5 · 口播稿 → 口播 → 演示录制
@@ -36,6 +38,9 @@ Interactive landscape "technical plate" (1440×900) of **Ultrasound Probe**, one
 
 ## Open
 
+- S2a: phantom organs (liver, gallbladder, stone, kidney) not modelled: the slice reaches 14 cm, the bench block is 46 mm deep; decide in S4 (use shot).
+- S2a: turntable framing crops the handle and cable (the film covers the lower stage): 2b.
+
 - S0.5: hook says "6 mm stone", the phantom stone is Ø 13 mm (BRIEF §3): reconcile in S3.
 - S0.5: the B-mode white point comes from each image's 99.5th percentile (gain still moves it); S3 fixes it to a constant.
 
@@ -46,6 +51,8 @@ Interactive landscape "technical plate" (1440×900) of **Ultrasound Probe**, one
 ## Notes
 
 ## Skill notes
+
+- S2a: a housing piece as one closed solid from rings × angle range × two insets (`shellGeometry`, faces oriented by known outward directions) gives shells, nose cone, grip and label from one function; candidate for the template. A transparent ground part is skipped by the audit: ground on a solid part.
 
 - S1: `bindFader` (vertical fader) added to the film's `controls.js`; candidate for the skill's template (needs OK).
 
