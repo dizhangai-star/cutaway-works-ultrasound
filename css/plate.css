@@ -332,3 +332,8 @@ html[lang="zh"] .title { font-size: 56px; }
 .intro { margin-top: 6px; font-size: 12px; line-height: 1.36; }
 .ctl-top { margin-top: 6px; }
 .views { margin-top: 8px; }
+/* left column fits its content; the two datasheet panels take the rest (controls sit at the bottom of the column) */
+.col-left { height: 412px; display: flex; flex-direction: column; }
+.col-left .col-ctl { margin-top: auto; }
+.panel.spec { top: 466px; height: 122px; }
+.panel.pen { top: 594px; height: 96px; }

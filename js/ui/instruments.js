@@ -113,14 +113,14 @@ export function createInstruments(root) {
 
   // ── left: spec block (S1 values, live cell) and penetration vs frequency (computed, live dot) ──
   function specInst(S, tk, sc) {
-    const { c, w } = prep(cv.spec, sc);
+    const { c, w, h } = prep(cv.spec, sc), rh = Math.min(20, (h - 4) / 5);
     const rows = [['spec.fov', '67.5°'], ['spec.band', '5–2 MHz', true], ['spec.ap', '60 mm'], ['spec.roc', '50 mm'], ['spec.depth', '30 cm']];
     rows.forEach(([k, v, live], i) => {
-      const y = 2 + i * 15;
-      if (live) { c.fillStyle = alpha(tk.ink, 0.1); c.fillRect(0, y, w, 15); }
-      text(c, t(k), 8, y + 11, F.cond(10.5, 600), live ? tk.ink : tk['ink-2']);
-      text(c, v, w - 8, y + 11, F.mono(10.5, 500), tk.ink, 'right');
-      c.strokeStyle = tk['rule-soft']; c.setLineDash([1, 2]); c.beginPath(); c.moveTo(4, y + 15); c.lineTo(w - 4, y + 15); c.stroke(); c.setLineDash([]);
+      const y = 2 + i * rh;
+      if (live) { c.fillStyle = alpha(tk.ink, 0.1); c.fillRect(0, y, w, rh); }
+      text(c, t(k), 8, y + rh / 2 + 4, F.cond(11, 600), live ? tk.ink : tk['ink-2']);
+      text(c, v, w - 8, y + rh / 2 + 4, F.mono(11, 500), tk.ink, 'right');
+      c.strokeStyle = tk['rule-soft']; c.setLineDash([1, 2]); c.beginPath(); c.moveTo(4, y + rh); c.lineTo(w - 4, y + rh); c.stroke(); c.setLineDash([]);
     });
   }
   function penInst(S, tk, sc) {
