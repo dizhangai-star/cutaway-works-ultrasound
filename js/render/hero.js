@@ -6,10 +6,10 @@ import { DIM } from '../build/probe.js';
 
 export const VIEWS = {
   // az: camera azimuth from +X toward +Z (the cut side); tx / ty: target offset (m); cx / cy: where the target lands
-  housing: { az: 72, el: 10, zoom: 1.0 },
-  cutaway: { az: 122, el: 15, zoom: 1.0 },
+  housing: { az: 62, el: 12, zoom: 0.5, ty: 0.07, cy: 0.1 },
+  cutaway: { az: 124, el: 20, zoom: 0.76, ty: 0.03, cy: 0.12 },
   beam: { az: 96, el: 6, zoom: 1.15, ty: -0.01 },
-  array: { az: 100, el: 12, zoom: 2.6, ty: -0.03 },
+  array: { az: 104, el: 4, zoom: 3.0, tx: -0.012, ty: -0.03, cy: 0.3 },
   section: { az: 90, el: 4, zoom: 1.0 },
 };
 for (const v of Object.values(VIEWS)) { v.tx ??= 0; v.ty ??= 0; v.cx ??= 0.5; v.cy ??= 0.205; }
@@ -22,7 +22,7 @@ export function createHero(renderer, subject) {
 
   const hemi = new THREE.HemisphereLight(0xe8f1ff, 0x30363c, 0.5);
   scene.add(hemi);
-  const key = new THREE.DirectionalLight(0xfff0dc, 2.4);
+  const key = new THREE.DirectionalLight(0xfff6ec, 2.1);
   key.position.set(-0.25, 0.55, 0.45);
   key.target.position.set(0, 0.04, 0); scene.add(key.target);
   key.castShadow = true;
@@ -30,14 +30,14 @@ export function createHero(renderer, subject) {
   Object.assign(key.shadow.camera, { left: -0.25, right: 0.25, top: 0.3, bottom: -0.2, near: 0.2, far: 1.6 });
   key.shadow.bias = -0.0002; key.shadow.normalBias = 0.002; key.shadow.radius = 5;
   scene.add(key);
-  const rim = new THREE.DirectionalLight(0xbcd6ff, 1.8);
+  const rim = new THREE.DirectionalLight(0xbcd6ff, 1.0);
   rim.position.set(0.4, 0.3, -0.5);
   scene.add(rim);
   const fill = new THREE.DirectionalLight(0xd8e6ee, 0.35);
   fill.position.set(0.3, -0.05, 0.4);
   scene.add(fill);
   // a soft work light in the open quarter, so the board and stack read under the housing's shadow
-  const inner = new THREE.PointLight(0xfff0dc, 0.09, 0.22, 2);
+  const inner = new THREE.PointLight(0xfff4e8, 0.16, 0.25, 2);
   inner.position.set(-0.035, 0.07, 0.07);
   scene.add(inner);
 

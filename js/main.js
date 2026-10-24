@@ -307,8 +307,8 @@ const CO = createCallouts({ svg: document.getElementById('leaders'), layer: docu
 const ap = (r, a, z) => { const [x, y] = arcPt(r, a); return V3(x, y, z); };
 const LABELS = [
   { id: 'housing', key: 'b.housing', local: V3(0.027, 0.075, 0.011), side: 1 },
-  { id: 'lens', key: 'b.lens', local: ap(0.0512, 0.25, 0.009), side: 1 },
-  { id: 'match', key: 'b.match', local: ap(0.0503, 0.42, 0.0072), side: 1 },
+  { id: 'lens', key: 'b.lens', local: ap(0.0512, -0.12, 0.0075), side: 1 },
+  { id: 'match', key: 'b.match', local: ap(0.05035, -0.24, 0.0075), side: 1 },
   { id: 'asic', key: 'b.asic', local: V3(-0.004, 0.056, 0.0032), side: -1 },
   { id: 'flex', key: 'b.flex', local: V3(-0.0295, 0.026, 0.004), side: -1 },
   { id: 'backing', key: 'b.backing', local: ap(0.042, -0.32, 0.0076), side: -1 },
