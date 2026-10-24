@@ -102,5 +102,12 @@
   "ctl.dr": "动态",
   "ctl.lin": "9 MHz",
   "ctl.lin.t": "线阵探头的 9 MHz 用在这个扇面上：更清楚，更浅",
-  "ctl.reset.t": "参数与视角复位 (R)"
+  "ctl.reset.t": "参数与视角复位 (R)",
+  "x.back": "后壳 + 铭牌",
+  "x.front": "前壳 + 握把",
+  "x.board": "波束形成板",
+  "x.heat": "散热片",
+  "x.cable": "线缆 + 护套",
+  "w.focus": "焦点",
+  "w.el": "阵元"
 }

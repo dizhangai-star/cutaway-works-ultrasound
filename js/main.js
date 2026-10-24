@@ -16,8 +16,10 @@ import { dim, centre, label } from './ui/dims.js';
 import { createClock } from './film.js';
 import { createLayout } from './layout.js';
 import { bindSlider, bindFader, bindOrbit } from './ui/controls.js';
-import { createSim, bmode, scanConvert, sectorPx, toXY, PROBE, PH } from './sim.js';
+import { createSim, bmode, scanConvert, sectorPx, toXY, PROBE, PH, delays } from './sim.js';
 import { createCallouts } from './ui/callouts.js';
+import { createExplode } from './render/explode.js';
+import { explodeGroups, explodeFrame } from './build/parts.js';
 
 const Q = new URLSearchParams(location.search);
 document.documentElement.classList.toggle('rec', Q.has('film'));
@@ -40,6 +42,7 @@ const M = createMaterials();
 const G = buildProbe(M);
 const hero = createHero(renderer, G.root);
 const fx = createEffects(G.root);
+const explode = createExplode(G.root, explodeGroups(G), { frame: explodeFrame(G) });
 
 // the cut: the camera-side front quarter of the housing, from just above the lens to the grip (intersection of four
 // half-spaces: z > 2 mm, x < 8 mm, 1.5 mm < y < 130 mm); a step deeper the lens opens in front of the layer faces
@@ -169,7 +172,13 @@ function viewPose(A, Bv, u) {
 }
 function viewState(tt) {
   const u = smooth(vs.t0, vs.t0 + 1.1, tt);
-  return { pose: viewPose(VIEWS[vs.prev], VIEWS[ui.view], u), callA: ui.view !== 'housing' ? smooth(vs.t0 + 0.7, vs.t0 + 1.2, tt) : 0 };
+  // Overview opens the probe once the camera has arrived; leaving it, the parts close before the camera moves
+  const leave = vs.prev === 'housing' && ui.view !== 'housing';
+  const e = ui.view === 'housing' ? smooth(vs.t0 + 1.0, vs.t0 + 2.6, tt) : leave ? 1 - smooth(vs.t0, vs.t0 + 0.6, tt) : 0;
+  const pose = viewPose(VIEWS[vs.prev], VIEWS[ui.view], leave ? smooth(vs.t0 + 0.5, vs.t0 + 1.6, tt) : u);
+  return { pose, e, callA: ui.view !== 'housing' ? smooth(vs.t0 + 0.7 + (leave ? 0.5 : 0), vs.t0 + 1.2 + (leave ? 0.5 : 0), tt) : 0,
+    waveA: ui.view === 'beam' ? smooth(vs.t0 + 0.8, vs.t0 + 1.4, tt) : vs.prev === 'beam' ? 1 - smooth(vs.t0, vs.t0 + 0.4, tt) : 0,
+    labelA: ui.view === 'housing' ? smooth(vs.t0 + 2.3, vs.t0 + 2.8, tt) : 0 };
 }
 const toggle = (k, on = !ui[k]) => { ui[k] = on; document.querySelector(`[data-act="${k}"]`).classList.toggle('on', on); };
 const resetOrbit = () => { ui.orbit = { az: 0, el: 0, zoom: 1 }; };
@@ -229,7 +238,7 @@ const TOP = 26;                                         // plate px above the fa
 function filmGeom() { const W = film.offsetWidth, H = film.offsetHeight; return { W, H, px: sectorPx(B.depth, W, H, TOP) }; }
 /** sector (x, y mm below the skin) → film plate px */
 const toFilm = (g, x, y) => [g.W / 2 + x / g.px, TOP + y / g.px];
-function drawFilm(S) {
+function drawFilm(S, V, tt) {
   if (!B) return;
   const g = filmGeom(), k = Math.min(window.devicePixelRatio || 1, 2) * L.scale, W = Math.round(g.W * k), H = Math.round(g.H * k);
   const key = `${bKey}-${S.dr}-${W}-${H}`;
@@ -248,6 +257,7 @@ function drawFilm(S) {
     const a = toFilm(g, ...toXY(th, 0)), b = toFilm(g, ...toXY(th, B.depth));
     c.strokeStyle = 'rgba(220, 240, 255, 0.28)'; c.lineWidth = 1.2; c.beginPath(); c.moveTo(...a); c.lineTo(...b); c.stroke();
   }
+  if (V.waveA > 0) wavelets(c, g, S, V.waveA, tt);
   // transmit focus: a small red mark on the right edge at the focal depth, as on a scanner
   const fy = TOP + S.focus / g.px;
   if (S.focus < B.depth) { c.fillStyle = 'rgba(255, 58, 50, 0.95)'; c.beginPath(); c.moveTo(g.W - 34, fy); c.lineTo(g.W - 27, fy - 4); c.lineTo(g.W - 27, fy + 4); c.fill(); }
@@ -255,6 +265,33 @@ function drawFilm(S) {
   const a = toFilm(g, ...toXY(S.stone.th, 0)), b = toFilm(g, ...toXY(S.stone.th, B.depth));
   c.strokeStyle = 'rgba(255, 58, 50, 0.9)'; c.lineWidth = 1; c.setLineDash([4, 3]); c.beginPath(); c.moveTo(...a); c.lineTo(...b); c.stroke(); c.setLineDash([]);
   if (bmarksKey !== `${bimgKey}-${document.documentElement.lang}`) marks(g);
+}
+// view 3 Pulse: one transmit, slowed ≈ 40 000×. Every active element sends its own wavelet at its own delay
+// (sim.delays, the far elements first); nothing else is drawn, the focused front is their envelope (Huygens).
+function wavelets(c, g, S, a, tt) {
+  const D = delays({ line: S.stone.th, focus: S.focus, active: 64 }), N = PROBE.elements, R = PROBE.roc;
+  const T = 3.2, us = ((tt % T) / T) * 1.5 * (S.focus + 20) / PROBE.c;   // µs into the transmit: past the focus and on
+  c.save();
+  c.fillStyle = `rgba(6, 10, 16, ${0.55 * a})`; c.fillRect(0, 0, g.W, g.H);
+  const [ox, oy] = toFilm(g, 0, -R), f = PROBE.fov / 2;                 // the sector's apex (behind the face)
+  c.beginPath(); c.arc(ox, oy, R / g.px, Math.PI / 2 + f, Math.PI / 2 - f, true); c.arc(ox, oy, (R + B.depth) / g.px, Math.PI / 2 - f, Math.PI / 2 + f); c.closePath(); c.clip();
+  c.globalCompositeOperation = 'lighter'; c.lineWidth = 1;
+  for (let i = D.i0; i < D.i0 + D.active; i++) {
+    const r = (us - D.d[i]) * PROBE.c; if (r <= 0) continue;
+    const ang = -PROBE.fov / 2 + PROBE.fov * (i + 0.5) / N, [ex, ey] = toXY(ang, 0), [px, py] = toFilm(g, ex, ey);
+    const fade = Math.max(0, 1 - r / (2.2 * (S.focus + 20)));
+    c.strokeStyle = `rgba(255, 120, 100, ${0.16 * a * fade})`;
+    c.beginPath(); c.arc(px, py, r / g.px, Math.PI / 2 - ang - 1.1, Math.PI / 2 - ang + 1.1); c.stroke();
+    c.fillStyle = `rgba(255, 90, 70, ${a * (us >= D.d[i] ? 0.9 : 0.25)})`; c.fillRect(px - 1, py - 1, 2, 2);
+  }
+  c.restore();
+  // the focus: where all 64 wavelets arrive together
+  const [qx, qy] = toFilm(g, ...toXY(S.stone.th, S.focus));
+  c.save(); c.globalAlpha = a; c.strokeStyle = 'rgba(255, 58, 50, 0.95)'; c.lineWidth = 1;
+  c.beginPath(); c.arc(qx, qy, 5, 0, 2 * Math.PI); c.moveTo(qx - 5, qy); c.lineTo(qx - 70, qy + 26); c.lineTo(qx - 82, qy + 26); c.stroke();
+  c.fillStyle = 'rgba(255, 120, 110, 1)'; c.font = "500 10px \"IBM Plex Mono\", \"Noto Sans SC\", monospace";
+  c.textAlign = 'right'; c.fillText(`${t('w.focus')} ${num(S.focus / 10, 1)} cm · 64 ${t('w.el')}`, qx - 86, qy + 29);
+  c.restore();
 }
 function marks(g) {
   bmarksKey = `${bimgKey}-${document.documentElement.lang}`;
@@ -316,8 +353,9 @@ const LABELS = [
 ];
 function callouts(V, rect, sr, s) {
   const w = stage.offsetWidth, h = stage.offsetHeight;
-  if (!(V.callA > 0 && w > 0)) return CO.hide();
   const at = (p) => { const q = hero.project(p, rect); return [(q.x - sr.left) / s, (q.y - sr.top) / s]; };
+  if (V.labelA > 0 && w > 0) return CO.labels(explode.groups.map((g) => ({ id: g.key, text: t(g.key), at: at(explode.anchor(g)), side: Math.sign(explode.anchor(g).x - 0.0) || 1 })), { w, h, a: V.labelA, top: 24, bottom: h - film.offsetTop + 8, inset: 12 });
+  if (!(V.callA > 0 && w > 0)) return CO.hide();
   CO.labels(LABELS.map((b) => ({ ...b, text: t(b.key), at: at(b.local) })), { w, h, a: V.callA, top: 24, bottom: h - film.offsetTop + 8, inset: 12 });
 }
 
@@ -327,6 +365,7 @@ function frame(tt) {
   const V = viewState(tt);
   applyCut(ui.view !== 'housing');
   hero.setView(V.pose);
+  explode.apply(V.e);
   fx.update({ th: S.stone.th, on: ui.view === 'housing' ? 0 : 1, t: S.frozen ? 0.95 : tt });
   const o = ui.orbit, drift = driftAt(tt);
   hero.setExtra({ az: drift.az + o.az, el: o.el, zoom: drift.zoom * o.zoom });
@@ -338,8 +377,9 @@ function frame(tt) {
   const centreAt = { x: sr.left + sr.width * V.pose.cx, y: sr.top + sr.height * V.pose.cy };
   if (sr.bottom > 0 && sr.top < vh) hero.render(rect, centreAt, ppm, vh);
   callouts(V, rect, sr, s);
-  drawFilm(S);
+  drawFilm(S, V, tt);
   drawLink(S, rect, sr, s);
+  if (V.e > 0) explode.apply(0);                             // the drawings show the assembled probe
   drawings.render(vh, s);
   inst.draw(S, theme(), s);
   drawUI(S);
