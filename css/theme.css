@@ -1,0 +1,49 @@
+/* Theme tokens (BRIEF §4). One set shared by CSS, three.js, Canvas instruments and drawing shaders:
+   js/theme.js reads these same variables. Generic: a new subject only swaps the values. */
+
+:root, :root[data-theme="dark"] {
+  --paper: #0E141B;
+  --paper-glow: #16212C;
+  --paper-edge: #0A0F14;
+  --ink: #D8E6EE;
+  --ink-2: #8FA3B1;
+  --grid: rgba(216, 230, 238, 0.07);
+  --grid-strong: rgba(216, 230, 238, 0.13);
+  --rule: rgba(216, 230, 238, 0.45);
+  --rule-soft: rgba(216, 230, 238, 0.22);
+  --panel: rgba(10, 16, 22, 0.55);
+  --accent: #D2322D;
+  --hot-0: #D2322D;
+  --hot-1: #FF9A3C;
+  --hot-2: #FFF4E0;
+  --dwg-line: #CFE3EE;
+  --dwg-dot: #5C7C90;
+  --dwg-paper: #0F1820;
+  --dwg-grid: #1A2834;
+  --glyph: rgba(216, 230, 238, 0.04);
+  /* three.js scene */
+  --shadow: #000000;
+  --shadow-opacity: 0.55;
+  --exposure: 1.0;
+}
+
+:root[data-theme="light"] {
+  --paper: #F7F7F4;
+  --paper-glow: #FBFBF9;
+  --paper-edge: #EEEEE9;
+  --ink: #1B2433;
+  --ink-2: #5A6675;
+  --grid: rgba(111, 183, 201, 0.22);
+  --grid-strong: rgba(111, 183, 201, 0.38);
+  --rule: rgba(27, 36, 51, 0.6);
+  --rule-soft: rgba(27, 36, 51, 0.28);
+  --panel: rgba(255, 255, 255, 0.5);
+  --dwg-line: #1B2433;
+  --dwg-dot: #9DB4C2;
+  --dwg-paper: #F3F5F3;
+  --dwg-grid: #D5E6EC;
+  --glyph: rgba(27, 36, 51, 0.045);
+  --shadow: #1B2433;
+  --shadow-opacity: 0.3;
+  --exposure: 1.0;
+}

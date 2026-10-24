@@ -1,0 +1,15 @@
+{
+  "note": "Posters (tools/poster.mjs): frames grabbed from the finished film at film time t (× rate), cropped [x, y, w, h] in 1920×1080 frame pixels (above the caption line), placed at [x, y, w] on the poster. Title [x, y, maxWidth, fontSize]; <em> = accent colour. Pick the hero at its most colourful moment and the use-shot result at its highest contrast; the subtitle must not contradict the image.",
+  "video": "out/ultrasound.{lang}.mp4",
+  "rate": 1.15,
+  "frames": { "tube": 55, "film": 82 },
+  "crops": { "tube": [100, 40, 1260, 940], "film": [568, 54, 788, 926] },
+  "text": {
+    "zh": { "title": "钩子问题，<em>结果</em>？", "sub": "B超探头 · 数字 · 数字 · 数字", "tag": "剖面影像工坊 · 第 NN 期" },
+    "en": { "title": "Hook question, <em>result</em>?", "sub": "Ultrasound Probe · number · number · number", "tag": "CUTAWAY WORKS · No. NN" }
+  },
+  "sizes": {
+    "16x9": { "w": 1920, "h": 1080, "title": [72, 56, 1100, 76], "tube": [-10, 196, 1180], "film": [1160, 120, 720], "tag": "right" },
+    "3x4": { "w": 1080, "h": 1440, "title": [56, 64, 968, 72], "tube": [-20, 300, 1120], "film": [590, 820, 440], "tag": "left" }
+  }
+}

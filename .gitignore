@@ -1,0 +1,10 @@
+.DS_Store
+node_modules/
+ref/fl3/
+ref/datasheets/
+out/
+.claude/settings.local.json
+refs/concept/fl3-*.jpg
+refs/concept/*/codex_v*.log
+__pycache__/
+audio/build/

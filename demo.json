@@ -1,0 +1,95 @@
+{
+  "note": "The scripted demo (S5). Film time in seconds. cmds drive the real page (solver log, views, sliders, knob); camera / spot / captions are the film's own layers. Selectors are elements of xray.html; a camera 'fit' frames the union of its selectors.",
+  "len": 99.7,
+  "initial": { "view": "image", "t0": -1.0 },
+  "cmds": [
+    { "t": 0.0, "set": { "kv": 120, "ma": 400, "ms": 10 } },
+    { "t": 0.05, "do": "expose" },
+
+    { "t": 4.2, "view": "housing" },
+    { "t": 4.6, "set": { "kv": 60, "ma": 50, "ms": 10000 } },
+
+    { "t": 9.5, "view": "cutaway" },
+    { "t": 11.0, "do": "prep", "click": "knob" },
+
+    { "t": 20.6, "view": "beam" },
+    { "t": 21.6, "do": "expose", "click": "knob" },
+
+    { "t": 32.0, "do": "expose", "click": "knob" },
+    { "t": 33.4, "ramp": { "k": "kv", "to": 68, "dur": 2.0 } },
+    { "t": 38.0, "ramp": { "k": "kv", "to": 120, "dur": 2.0 } },
+
+    { "t": 42.8, "view": "cutaway" },
+    { "t": 43.0, "set": { "ma": 60 } },
+    { "t": 43.6, "do": "expose", "click": "knob" },
+
+    { "t": 59.1, "ramp": { "k": "ma", "to": 600, "dur": 1.6 } },
+    { "t": 63.7, "do": "expose", "click": "knob" },
+
+    { "t": 68.3, "view": "exploded" },
+
+    { "t": 74.5, "view": "image" },
+    { "t": 74.5, "set": { "kv": 120, "ma": 400, "ms": 10 } },
+    { "t": 76.5, "do": "expose", "click": "knob" },
+    { "t": 80.5, "ramp": { "k": "kv", "to": 40, "dur": 1.2 } },
+    { "t": 85.7, "ramp": { "k": "kv", "to": 150, "dur": 3.0 } },
+    { "t": 90.3, "ramp": { "k": "kv", "to": 120, "dur": 1.0 } }
+  ],
+  "camera": [
+    { "t": 0.0, "dur": 0, "fit": ["#film"], "pad": 0.04 },
+    { "t": 4.2, "dur": 1.8, "full": true },
+    { "t": 7.4, "dur": 1.6, "fit": ["#stage"] },
+    { "t": 9.9, "dur": 1.0, "fit": [".col-left", "#stage"] },
+    { "t": 11.6, "dur": 1.2, "fit": ["#stage"], "z": 2.5, "at": [0.44, 0.5] },
+    { "t": 16.0, "dur": 1.2, "fit": ["#stage", ".panel.heat"] },
+    { "t": 20.4, "dur": 1.2, "fit": [".col-left", "#stage"] },
+    { "t": 22.0, "dur": 1.2, "fit": ["#stage"] },
+    { "t": 31.4, "dur": 1.2, "full": true },
+    { "t": 35.0, "dur": 1.2, "fit": [".panel.spectrum"], "pad": 0.06 },
+    { "t": 42.6, "dur": 1.4, "fit": ["#stage", ".panel.heat"] },
+    { "t": 48.2, "dur": 1.2, "fit": [".panel.heat"], "pad": 0.06 },
+    { "t": 52.4, "dur": 1.2, "fit": ["#stage", ".panel.heat"] },
+    { "t": 58.5, "dur": 1.2, "fit": [".col-left", ".panel.rating"] },
+    { "t": 61.1, "dur": 1.2, "fit": [".panel.rating"], "pad": 0.05 },
+    { "t": 67.9, "dur": 1.6, "fit": ["#stage"] },
+    { "t": 74.3, "dur": 1.6, "fit": ["#stage"] },
+    { "t": 79.9, "dur": 1.2, "fit": ["#film"], "pad": 0.05 },
+    { "t": 91, "dur": 2.4, "full": true }
+  ],
+  "spot": [
+    { "t": 0.0, "dur": 0, "on": ["#film"], "a": 0.94 },
+    { "t": 4.2, "dur": 0.8, "off": true },
+    { "t": 11.6, "dur": 0.6, "on": ["#stage"], "a": 0.6 },
+    { "t": 16.0, "dur": 0.6, "on": ["#stage", ".panel.heat"], "a": 0.6 },
+    { "t": 20.4, "dur": 0.6, "off": true },
+    { "t": 22.0, "dur": 0.6, "on": ["#stage"], "a": 0.6 },
+    { "t": 31.4, "dur": 0.6, "on": [".col-ctl", ".panel.spectrum"], "a": 0.6 },
+    { "t": 42.6, "dur": 0.6, "on": ["#stage", ".panel.heat"], "a": 0.6 },
+    { "t": 58.5, "dur": 0.6, "on": [".col-ctl", ".panel.rating"], "a": 0.6 },
+    { "t": 61.1, "dur": 0.6, "on": [".panel.rating"], "a": 0.6 },
+    { "t": 67.9, "dur": 0.6, "off": true },
+    { "t": 79.9, "dur": 0.6, "on": ["#film"], "a": 0.7 },
+    { "t": 91, "dur": 1.2, "off": true }
+  ],
+  "captions": [
+    { "t": 0.3, "d": 4, "zh": "10 毫秒，就能拍下一张胸片。", "en": "10 milliseconds is all it takes to make a chest X-ray." },
+    { "t": 4.6, "d": 5.7, "zh": "这是怎么做到的？靠的就是这根 47.6 厘米长的 X 光管。", "en": "How is that possible? It starts with this X-ray tube, 47.6 cm long." },
+    { "t": 11.6, "d": 4.9, "zh": "剖开来看，左边的灯丝烧到白热，就会放出电子。", "en": "Cut it open, and the filament on the left glows white-hot, giving off electrons." },
+    { "t": 16.7, "d": 5.1, "zh": "右边的钨靶盘也转了起来，每分钟高达 9 700 转。", "en": "On the right, the tungsten disc spins up, to 9,700 turns a minute.", "say": { "zh": "右边的钨靶盘也转了起来，每分钟高达九千七百转。", "en": "On the right, the tungsten disc spins up, to nine thousand seven hundred turns a minute." }, "seed": { "zh": 7 } },
+    { "t": 22.0, "d": 5.0, "zh": "高压把电子拉向靶盘，速度能达到光速的一半。", "en": "High voltage pulls the electrons across, at up to half the speed of light." },
+    { "t": 27.2, "d": 5.6, "zh": "电子撞上钨，猛地刹住，刹车的能量就变成了 X 光。", "en": "They slam into the tungsten and stop, and that braking energy comes out as X-rays." },
+    { "t": 33.2, "d": 4.6, "zh": "电压越高，X 光就越硬，穿透力也越强。", "en": "Higher voltage means harder X-rays, which get through more." },
+    { "t": 38.0, "d": 5.8, "zh": "电压超过了 69.5 千伏，光谱上还会冒出钨特有的指纹。", "en": "Above 69.5 kV, tungsten’s own fingerprint shows up in the spectrum.", "say": { "en": "Above sixty-nine point five kilovolts, tungsten's own fingerprint shows up in the spectrum." } },
+    { "t": 44.0, "d": 4.4, "zh": "但只有不到 1% 变成 X 光，剩下的全变成了热。", "en": "But less than 1 % becomes X-rays. The rest all turns to heat.", "say": { "en": "But less than one percent becomes X-rays. The rest all turns to heat." } },
+    { "t": 48.6, "d": 4.1, "zh": "所以靶盘得一直转，把热分散到一整圈上。", "en": "So the disc keeps spinning, spreading the heat round a whole ring." },
+    { "t": 52.9, "d": 5.9, "zh": "焦点能烧到两千多度，但钨要 3 422 °C 才会熔。", "en": "The focal spot can pass 2,000 °C, but tungsten won’t melt until 3,422 °C.", "say": { "zh": "焦点能烧到两千多度，但钨要3422度才会熔。", "en": "The focal spot can pass two thousand degrees, but tungsten won't melt until three thousand four hundred and twenty-two." } },
+    { "t": 59, "d": 4.8, "zh": "满功率开上 2.8 秒，靶盘就再也装不下热了。", "en": "At full power, the disc can only take 2.8 seconds before it’s full of heat.", "say": { "en": "At full power, the disc can only take two point eight seconds before it's full of heat." } },
+    { "t": 64, "d": 4.4, "zh": "一旦超过额定值，机器就不让曝光了。", "en": "Go past the rating, and the machine simply won’t fire.", "say": { "en": "Go past the rating, and the machine simply won't fire." } },
+    { "t": 68.9, "d": 7.3, "zh": "拆开看：外面是管套和油，里面是真空管、阴极、靶盘和转子。", "en": "Take it apart. Outside are the housing and the oil. Inside is the vacuum tube, with the cathode, the disc and the rotor." },
+    { "t": 76.7, "d": 3.8, "zh": "X 光穿过身体，落在后面的探测板上。", "en": "The X-rays pass through the body and land on the detector behind it." },
+    { "t": 80.7, "d": 4.8, "zh": "骨头挡得多就发白，肺里全是空气就发黑。", "en": "Bone blocks more, so it shows up white. The lungs are full of air, so they show black." },
+    { "t": 85.7, "d": 4.3, "zh": "电压调高，骨头变淡，肺部纹理反而更清楚。", "en": "Turn the voltage up, and bone fades while lung detail gets clearer." },
+    { "t": 90.2, "d": 4.3, "zh": "所以拍胸片，一般用 120 千伏的高电压。", "en": "That’s why chest X-rays are usually taken at a high 120 kV.", "say": { "en": "That's why chest X-rays are usually taken at a high one hundred and twenty kilovolts." } },
+    { "t": 95.0, "d": 3.9, "zh": "剖面影像工坊，让看不见的原理被看见。", "en": "Cutaway Works. Making the invisible visible." }
+  ]
+}

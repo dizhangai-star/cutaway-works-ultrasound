@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<title>X-ray Tube Plate</title>
+<meta name="description" content="A live technical plate of a rotating-anode X-ray tube, built procedurally in three.js.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/plate.css">
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.js", "three/addons/": "./vendor/three/addons/" } }
+</script>
+</head>
+<body>
+<!-- printed layer, behind the WebGL canvas -->
+<div class="plate paper" aria-hidden="true">
+  <div class="glow"></div>
+  <div class="glyph">W<small>74</small></div>
+</div>
+
+<canvas id="gl"></canvas>
+
+<!-- everything printed on top of the canvas -->
+<div class="plate ui-plate">
+  <div class="ui">
+    <header class="head frame">
+      <span class="head-left" data-i18n="head.left"></span>
+      <span class="head-tags" data-i18n-list="head.tags"></span>
+      <span class="head-sheet" data-i18n="head.sheet"></span>
+      <button class="head-lang" data-act="lang" data-i18n-title="ctl.lang"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"/><ellipse cx="10" cy="10" rx="3" ry="7"/><path d="M3 10h14M4.2 6.3h11.6M4.2 13.7h11.6"/></svg></button>
+    </header>
+
+    <section class="col-left frame">
+      <div class="col-text sub">
+      <div class="kicker mono" data-i18n="kicker"></div>
+      <h1 class="title" data-i18n="title"></h1>
+      <div class="subtitle" data-i18n="subtitle"></div>
+      <p class="intro" data-i18n="intro"></p>
+      </div>
+
+      <div class="col-ctl sub">
+      <div class="knob-row">
+        <span class="knob-label" data-i18n="ctl.prep"></span>
+        <div class="knob" role="button" tabindex="0" data-act="expose"><svg viewBox="0 0 100 100" class="knob-arc"><path d="M14 64 A38 38 0 1 1 86 64" /></svg><div class="knob-cap"><i></i></div></div>
+        <span class="knob-label" data-i18n="ctl.expose"></span>
+      </div>
+
+      <div class="sliders">
+        <div class="slider" data-key="kv"><span class="sl-name" data-i18n="ctl.kv"></span><div class="sl-track"><div class="sl-fill"></div><div class="sl-thumb"></div><div class="sl-ticks"></div></div><span class="sl-val mono"></span></div>
+        <div class="slider" data-key="ma"><span class="sl-name" data-i18n="ctl.ma"></span><div class="sl-track"><div class="sl-fill"></div><div class="sl-thumb"></div><div class="sl-ticks"></div></div><span class="sl-val mono"></span></div>
+        <div class="slider" data-key="ms"><span class="sl-name" data-i18n="ctl.ms"></span><div class="sl-track"><div class="sl-fill"></div><div class="sl-thumb"></div><div class="sl-ticks"></div></div><span class="sl-val mono"></span></div>
+        <div class="slider focus-row"><span class="sl-name" data-i18n="ctl.focus"></span><div class="seg"><button data-focus="auto" data-i18n="focus.auto" class="on"></button><button data-focus="large" data-i18n="focus.large"></button><button data-focus="small" data-i18n="focus.small"></button></div><span class="sl-val mono" id="focus-val"></span></div>
+      </div>
+
+      <div class="views">
+        <button data-view="housing" data-i18n="view.housing"></button>
+        <button data-view="cutaway" data-i18n="view.cutaway" class="on"></button>
+        <button data-view="beam" data-i18n="view.beam"></button>
+        <button data-view="exploded" data-i18n="view.exploded"></button>
+        <button data-view="image" data-i18n="view.image"></button>
+      </div>
+      <div class="toggles">
+        <button data-act="slow" data-i18n="ctl.slow"></button>
+        <button data-act="sound" data-i18n="ctl.sound"></button>
+        <button data-act="reset" data-i18n="ctl.reset"></button>
+        <button data-act="theme" data-i18n-title="ctl.theme"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="6.5"/><path d="M10 3.5a6.5 6.5 0 0 1 0 13z"/></svg></button>
+      </div>
+      </div>
+    </section>
+
+    <section class="panel rating frame">
+      <div class="p-head"><b data-i18n="rating.title"></b><span data-i18n="rating.sub"></span></div>
+      <canvas class="inst" data-inst="rating"></canvas>
+    </section>
+    <section class="panel cooling frame">
+      <div class="p-head"><b data-i18n="cooling.title"></b><span data-i18n="cooling.sub"></span></div>
+      <canvas class="inst" data-inst="cooling"></canvas>
+    </section>
+
+    <section class="stage frame" id="stage">
+      <svg class="link" id="link"></svg>
+      <div class="film" id="film"><span class="f-title mono" data-i18n="film.title"></span><b class="f-l">L</b><span class="f-wait mono" data-i18n="film.wait"></span>
+        <span class="f-scale mono"><i></i>10 cm</span><span class="f-cap mono" id="film-cap"></span></div>
+      <svg class="leaders" id="leaders"></svg>
+      <ol class="legend mono" id="legend"></ol>
+      <div class="element" aria-hidden="true"><span class="el-z mono">74</span><b class="el-sym">W</b><span class="el-name" data-i18n="el.name"></span><span class="el-role" data-i18n="el.role"></span></div>
+      <div class="callouts" id="callouts"></div>
+      <div class="narr" id="narr"></div>
+      <div class="hv hv-a mono">HV +</div>
+      <div class="hv hv-c mono">HV −</div>
+      <div class="beamtag mono" data-i18n="dwg.ray"></div>
+    </section>
+
+    <section class="panel params frame">
+      <div class="p-head"><b data-i18n="inst.params"></b><span data-i18n="inst.params.sub"></span></div>
+      <canvas class="inst" data-inst="params"></canvas>
+    </section>
+    <section class="panel spectrum frame">
+      <div class="p-head"><b data-i18n="inst.spectrum"></b><span class="mono" id="spec-sub"></span></div>
+      <canvas class="inst" data-inst="spectrum"></canvas>
+    </section>
+    <section class="panel heat frame">
+      <div class="p-head"><b data-i18n="inst.heat"></b><span data-i18n="inst.heat.sub"></span></div>
+      <canvas class="inst" data-inst="heat"></canvas>
+    </section>
+    <section class="panel recorder frame">
+      <div class="p-head"><b data-i18n="inst.recorder"></b></div>
+      <canvas class="inst" data-inst="recorder"></canvas>
+    </section>
+
+    <section class="dwg d-front frame"><div class="p-head"><b data-i18n="dwg.front"></b></div><div class="dwg-view" data-view="front"></div></section>
+    <section class="dwg d-side frame"><div class="p-head"><b data-i18n="dwg.side"></b></div><div class="dwg-view" data-view="side"></div></section>
+    <section class="dwg d-plan frame"><div class="p-head"><b data-i18n="dwg.plan"></b></div><div class="dwg-view" data-view="plan"></div></section>
+    <section class="dwg d-section frame"><div class="p-head"><b data-i18n="dwg.section"></b></div><div class="dwg-view" data-view="section"></div></section>
+
+    <section class="card frame">
+      <div class="p-head"><b data-i18n="card.title"></b><span id="card-sub" data-i18n="card.sub"></span></div>
+      <dl id="card"></dl>
+    </section>
+
+    <footer class="foot">
+      <span data-i18n="foot.left"></span>
+      <span class="foot-note" data-i18n="foot.note"></span>
+      <span class="foot-right"><span class="colorbar"><i></i><i></i><i></i><i></i><i></i><i class="r"></i><i class="r2"></i></span><span data-i18n="foot.right"></span>
+        <svg class="reg" viewBox="0 0 20 20"><circle cx="10" cy="10" r="6"/><path d="M10 0V20M0 10H20"/></svg></span>
+    </footer>
+  </div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Assembly Audit</title>
+<script type="importmap">
+{ "imports": { "three": "../vendor/three/three.module.js", "three/addons/": "../vendor/three/addons/" } }
+</script>
+</head><body style="background:#fff">
+<script type="module">
+// Geometry audit of the built assembly (generic; the subject only supplies build()):
+//   parts   named parts (a named mesh, or a named group's meshes as one part)
+//   open    meshes with boundary edges whose material is cut (a cut through an open mesh shows no cap)
+//   overlap pairs of parts that share volume (ray-parity voxels along +X, grid h)
+//   float   parts with no contact path to the ground part
+// Mesh flags: userData.noAudit (skip), userData.audit (include although transparent), userData.auditOk = [names it may overlap].
+import * as THREE from 'three';
+import { createMaterials } from '../js/materials.js';
+import { buildTube } from '../js/build/tube.js';
+
+const Q = new URLSearchParams(location.search);
+const h = Number(Q.get('h') || 0.001), GAP = Number(Q.get('gap') || 0.0008), GROUND = (Q.get('ground') || 'foot').split(',')    // ground parts, comma-separated;
+const OY = 0.3719, OZ = 0.2903;      // grid lines off round numbers, so they never run along a profile vertex circle
+const CONTAINERS = new Set(['assembly', 'housing', 'insert', 'rotor', 'stand']);
+const { root } = buildTube(createMaterials());
+root.updateMatrixWorld(true);
+
+// part of a mesh: own name, else the nearest named non-container ancestor, else parent/anon
+const anon = new Map();
+function partOf(o) {
+  if (o.name) return o.name;
+  for (let p = o.parent; p; p = p.parent) if (p.name && !CONTAINERS.has(p.name)) return p.name;
+  const k = o.parent?.name || 'root';
+  if (!anon.has(o)) anon.set(o, `${k}/#${[...anon.values()].filter((v) => v.startsWith(k + '/')).length}`);
+  return anon.get(o);
+}
+
+const meshes = [];
+root.traverse((o) => { if (o.isMesh && !o.userData.noAudit && (!o.material.transparent || o.userData.audit)) meshes.push(o); });
+
+// world triangles, closedness
+// an InstancedMesh counts as one mesh made of all its instances (each placed by its instance matrix)
+function tris(m) {
+  const g = m.geometry, p = g.attributes.position, ix0 = g.index ? g.index.array : null;
+  const nI = m.isInstancedMesh ? m.count : 1, n0 = ix0 ? ix0.length : p.count, v = new THREE.Vector3(), W = [];
+  const mats = [], im = new THREE.Matrix4();
+  for (let k = 0; k < nI; k++) { if (m.isInstancedMesh) { m.getMatrixAt(k, im); mats.push(m.matrixWorld.clone().multiply(im)); } else mats.push(m.matrixWorld); }
+  const ix = []; for (let k = 0; k < nI; k++) for (let i = 0; i < n0; i++) ix.push((ix0 ? ix0[i] : i) + k * p.count);
+  const n = ix.length;
+  const key = new Map(), ids = [];
+  for (let j = 0; j < p.count * nI; j++) {
+    const i = j % p.count;
+    v.fromBufferAttribute(p, i).applyMatrix4(mats[Math.floor(j / p.count)]);
+    const k = `${Math.round(v.x * 1e6)},${Math.round(v.y * 1e6)},${Math.round(v.z * 1e6)}`;
+    if (!key.has(k)) key.set(k, key.size);
+    ids.push(key.get(k)); W.push(v.x, v.y, v.z);
+  }
+  const T = [], edges = new Map();
+  for (let i = 0; i < n; i += 3) {
+    const a = ix[i], b = ix[i + 1], c = ix[i + 2];
+    const A = ids[a], B = ids[b], C = ids[c];
+    if (A === B || B === C || A === C) continue;
+    T.push([W[a * 3], W[a * 3 + 1], W[a * 3 + 2], W[b * 3], W[b * 3 + 1], W[b * 3 + 2], W[c * 3], W[c * 3 + 1], W[c * 3 + 2]]);
+    for (const [u, w] of [[A, B], [B, C], [C, A]]) { const e = u < w ? `${u}_${w}` : `${w}_${u}`; edges.set(e, (edges.get(e) || 0) + 1); }
+  }
+  let open = 0, nonman = 0; for (const c of edges.values()) { if (c === 1) open++; else if (c > 2) nonman++; }
+  return { T, open, nonman };
+}
+
+// x-intervals of a mesh on every (y, z) grid line through it
+function lines(T, closed) {
+  const cell = new Map(), out = new Map();
+  let y0 = Infinity, y1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+  for (const t of T) {
+    const ty0 = Math.min(t[1], t[4], t[7]), ty1 = Math.max(t[1], t[4], t[7]), tz0 = Math.min(t[2], t[5], t[8]), tz1 = Math.max(t[2], t[5], t[8]);
+    y0 = Math.min(y0, ty0); y1 = Math.max(y1, ty1); z0 = Math.min(z0, tz0); z1 = Math.max(z1, tz1);
+    for (let iy = Math.ceil(ty0 / h - OY); iy <= Math.floor(ty1 / h - OY); iy++) for (let iz = Math.ceil(tz0 / h - OZ); iz <= Math.floor(tz1 / h - OZ); iz++) {
+      const k = iy + ',' + iz; if (!cell.has(k)) cell.set(k, []); cell.get(k).push(t);
+    }
+  }
+  for (const [k, list] of cell) {
+    const [iy, iz] = k.split(',').map(Number), y = (iy + OY) * h, z = (iz + OZ) * h, xs = [];
+    for (const t of list) {           // 2D point-in-triangle in (y, z), then x by barycentrics
+      const [ax, ay, az, bx, by, bz, cx, cy, cz] = t;
+      const d = (by - ay) * (cz - az) - (cy - ay) * (bz - az); if (Math.abs(d) < 1e-14) continue;
+      const u = ((y - ay) * (cz - az) - (cy - ay) * (z - az)) / d, w = ((by - ay) * (z - az) - (y - ay) * (bz - az)) / d;
+      if (u < 0 || w < 0 || u + w > 1) continue;
+      xs.push(ax + u * (bx - ax) + w * (cx - ax));
+    }
+    if (!xs.length) continue;
+    xs.sort((a, b) => a - b);
+    for (let i = xs.length - 1; i > 0; i--) if (xs[i] - xs[i - 1] < 1e-7) xs.splice(i, 1);   // a ray through a shared edge hits twice
+    const iv = [];
+    if (closed && xs.length % 2 === 0) for (let i = 0; i < xs.length; i += 2) iv.push([xs[i], xs[i + 1]]);
+    else for (const x of xs) iv.push([x - h / 2, x + h / 2]);           // open surface: a thin skin
+    out.set(k, iv);
+  }
+  return out;
+}
+
+const parts = new Map();   // name -> { meshes, lines: Map, vol, ok:Set }
+const openCut = [];
+for (const m of meshes) {
+  const name = partOf(m), { T, open, nonman } = tris(m);
+  const cut = !!m.material.userData?.cuttable;
+  if ((open || nonman) && cut) openCut.push({ name, open, nonman });
+  const L = lines(T, !open && !nonman);
+  if (!parts.has(name)) parts.set(name, { n: 0, lines: new Map(), ok: new Set(), box: new THREE.Box3(), thin: false });
+  const P = parts.get(name); P.n++; P.box.expandByObject(m, true); if (L.size < 4) P.thin = true;
+  for (let o = m; o && !CONTAINERS.has(o.name); o = o.parent) for (const x of o.userData.auditOk || []) P.ok.add(x);
+  for (const [k, iv] of L) { if (!P.lines.has(k)) P.lines.set(k, []); P.lines.get(k).push(...iv); }
+}
+const len = (iv) => iv.reduce((s, [a, b]) => s + b - a, 0);
+for (const P of parts.values()) P.vol = [...P.lines.values()].reduce((s, iv) => s + len(iv), 0) * h * h;
+
+// pairwise overlap and contact
+const names = [...parts.keys()], overlaps = [], adj = new Map(names.map((n) => [n, new Set()]));
+for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) {
+  const A = parts.get(names[i]), B = parts.get(names[j]);
+  let ov = 0, touch = false; const where = [];
+  const [small, big] = A.lines.size < B.lines.size ? [A, B] : [B, A];
+  for (const [k, ia] of small.lines) {
+    const [iy, iz] = k.split(',').map(Number);
+    for (const [dy, dz] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const ib = big.lines.get((iy + dy) + ',' + (iz + dz)); if (!ib) continue;
+      for (const [a0, a1] of ia) for (const [b0, b1] of ib) {
+        if (!dy && !dz) { const o = Math.max(0, Math.min(a1, b1) - Math.max(a0, b0)); ov += o; if (o > 0 && where.length < 4) where.push(`y ${(iy * h * 1e3).toFixed(0)} z ${(iz * h * 1e3).toFixed(0)} x ${(Math.max(a0, b0) * 1e3).toFixed(1)}..${(Math.min(a1, b1) * 1e3).toFixed(1)} mm`); }
+        if (Math.max(a0, b0) - Math.min(a1, b1) <= GAP + (dy || dz ? 0 : 0)) touch = true;
+      }
+    }
+  }
+  ov *= h * h;
+  // parts thinner than the grid (filaments, legs) leave no lines: their bounding boxes stand in for contact
+  if ((A.thin || B.thin) && A.box.clone().expandByScalar(GAP).intersectsBox(B.box)) touch = true;
+  if (touch || ov > 0) { adj.get(names[i]).add(names[j]); adj.get(names[j]).add(names[i]); }
+  const minV = Math.min(A.vol, B.vol);
+  const allowed = A.ok.has(names[j]) || B.ok.has(names[i]);
+  if (ov > 3e-9 && ov > 0.02 * minV && !allowed) overlaps.push({ a: names[i], b: names[j], mm3: +(ov * 1e9).toFixed(1), pct: +(100 * ov / minV).toFixed(1), where });
+}
+overlaps.sort((a, b) => b.pct - a.pct);
+// floating: components not reaching the ground
+const seen = new Set(), comps = [];
+for (const n of names) {
+  if (seen.has(n)) continue;
+  const c = [], st = [n]; seen.add(n);
+  while (st.length) { const x = st.pop(); c.push(x); for (const y of adj.get(x)) if (!seen.has(y)) { seen.add(y); st.push(y); } }
+  comps.push(c);
+}
+const floating = comps.filter((c) => !c.some((n) => GROUND.some((g) => n === g || n.startsWith(g))));
+const named = names.filter((n) => !n.includes('/#'));
+const thin = names.filter((n) => parts.get(n).thin);
+const bbox = (n) => { const b = parts.get(n).box; return [b.min, b.max].map((v) => [v.x, v.y, v.z].map((c) => +(c * 1e3).toFixed(0))); };
+window.__audit = { bbox: Object.fromEntries(floating.flat().map((n) => [n, bbox(n)])), thin, parts: names.length, named: named.length, namedList: named, meshes: meshes.length, openCut, overlaps, floating,
+  vol: Object.fromEntries(names.map((n) => [n, +(parts.get(n).vol * 1e9).toFixed(0)])) };
+</script>
+</body></html>

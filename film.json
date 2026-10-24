@@ -1,0 +1,5 @@
+{
+  "slug": "ultrasound",
+  "len": 60,
+  "note": "the scripted demo (demo.json) recorded frame by frame; captions and camera live in demo.json."
+}
