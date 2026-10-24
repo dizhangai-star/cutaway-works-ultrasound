@@ -228,7 +228,7 @@ export function buildProbe(M) {
   lathe([[BORE, 152], [5.4, 152], [5.4, 166], [7.0, 166], [7.0, 167.4], [BORE, 167.4], [BORE, 152]], 'cable gland', M.frame);
   const sr = [[BORE, 167.4]]; for (let i = 0; i <= 24; i++) { const u = i / 24; sr.push([(6.8 - 2.4 * u) * (i % 3 === 1 ? 1.06 : 1), 167.4 + u * 54]); }
   sr.push([BORE, 221.4], [BORE, 167.4]); lathe(sr, 'strain relief', M.rubber);
-  const path = new THREE.CatmullRomCurve3([[0, 150.2, 0], [0, 200, 0], [0.6, 230, 0], [20, 300, -6], [70, 330, -18], [160, 345, -30]].map(([x, y, z]) => new THREE.Vector3(mm(x), mm(y), mm(z))));
+  const path = new THREE.CatmullRomCurve3([[0, 150.2, 0], [0, 200, 0], [0.5, 226, 0], [12, 250, -4], [45, 266, -12], [110, 272, -24], [200, 270, -36], [420, 262, -60]].map(([x, y, z]) => new THREE.Vector3(mm(x), mm(y), mm(z))));
   add(cappedTube(path, mm(BORE), 160, 20), M.cable, 'cable');
   add(cappedTube(new THREE.LineCurve3(new THREE.Vector3(0, mm(140), 0), new THREE.Vector3(0, mm(150.2), 0)), mm(3.0), 4, 20), M.braid, 'shield braid');
   add(ribbon([[0, 133.6], [0, 137], [0, 140.6]].map(([x, y]) => [mm(x), mm(y)]), mm(1.5), mm(2.4)), M.flex, 'cable conductors');
