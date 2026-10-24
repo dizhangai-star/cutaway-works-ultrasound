@@ -4,9 +4,9 @@ The spec every sprint builds from. Numbers: [SOURCES.md](SOURCES.md) or the *mod
 
 ## 0. Topic quick check
 
-- **Hook**: 「一颗 6 毫米的石头，让下面整片变黑。」 / "A 6 mm stone, and everything under it goes black."
+- **Hook**: 「一颗 13 毫米的石头，让下面整片变黑。」 / "A 13 mm stone, and everything under it goes black."
 - **Money shot**: the B-mode sector beside the cut-open probe. A beam line runs from one active aperture down through liver and gallbladder, ends at the stone, and the shadow column sits under it. The readout reads round-trip time 91 µs → 7.0 cm (*t* = 2*d*/*c*, *c* = 1540 m/s).
-- **Use shot**: abdominal B-mode image of the shared series phantom (liver, gallbladder with bile, a 6.5 mm stone, right kidney), computed from point scatterers by the solver: speckle, an anechoic gallbladder, a bright stone surface, an acoustic shadow, posterior enhancement. Feasibility shown in S0 (`out/review/spike-bmode.png`, §7).
+- **Use shot**: abdominal B-mode image of the shared series phantom (liver, gallbladder with bile, a Ø 13 mm stone, right kidney), computed from point scatterers by the solver: speckle, an anechoic gallbladder, a bright stone surface, an acoustic shadow, posterior enhancement. Feasibility shown in S0 (`out/review/spike-bmode.png`, §7).
 - **Three public hard numbers**: field of view **67.5°**, radius of curvature **50 mm**, bandwidth **5–2 MHz** (S1); plus the 1540 m/s convention (S2).
 - **Reference object**: handheld 5–2 MHz curved array with the beamformer inside (S1). One public spec block, no outline drawing → outline and internals *modelled* from aperture and ROC.
 - **Series line**: CT could not catch this stone (many stones look like bile on CT), and ultrasound cannot see the lung nodule from No. 02 (air stops sound). Each machine has its blind spot.

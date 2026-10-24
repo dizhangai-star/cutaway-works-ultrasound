@@ -63,3 +63,18 @@ test('S1 controls: 9 MHz toggle images at 9 MHz, focus moves the delay curve', (
   const d = (focus) => Math.max(...X.delays({ focus }).d);
   assert.ok(d(30) > d(120), `near focus = more delay spread: ${d(30)} vs ${d(120)}`);
 });
+
+test('S3: fixed white point, gain brightens, shadow ≈ stone width × sector divergence, posterior enhancement', () => {
+  const B0 = X.bmode({ density: 150000 / 160 }), B1 = X.bmode({ density: 150000 / 160, gain: 6 });
+  assert.equal(B0.ref, B1.ref);
+  const mean = (B) => { let s = 0; for (let i = 0; i < B.env.length; i += 53) s += B.env[i]; return s; };
+  near(20 * Math.log10(mean(B1) / mean(B0)), 6, 0.3, 'gain dB');
+  const B = X.bmode();
+  const at = (x, y) => { const [th, d] = X.toPolar(x, y); const l = Math.round((th + X.PROBE.fov / 2) / B.dth); return 20 * Math.log10(B.env[l * B.NS + Math.round(d / B.dz)] / B.ref + 1e-12); };
+  const avg = (x, y0, y1) => { let s = 0, n = 0; for (let y = y0; y <= y1; y += 0.5) for (const dx of [-1, 0, 1]) { s += at(x + dx, y); n++; } return s / n; };
+  const base = avg(-40, 100, 110); let w = 0;
+  for (let x = -20; x <= 24; x += 0.5) { let s = 0; for (let y = 100; y <= 110; y += 0.5) s += at(x, y); if (s / 21 < base - 10) w += 0.5; }
+  const geo = 2 * X.PH.stone.r * (X.PROBE.roc + 105) / (X.PROBE.roc + X.PH.stone.y);
+  near(w, geo, 2.5, 'shadow width mm at 10.5 cm');
+  assert.ok(avg(-22, 88, 100) - avg(-50, 88, 100) > 5, 'posterior enhancement under the bile');
+});
