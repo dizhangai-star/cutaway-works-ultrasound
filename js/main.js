@@ -178,6 +178,7 @@ function viewState(tt) {
   const pose = viewPose(VIEWS[vs.prev], VIEWS[ui.view], leave ? smooth(vs.t0 + 0.5, vs.t0 + 1.6, tt) : u);
   return { pose, e, callA: ui.view !== 'housing' ? smooth(vs.t0 + 0.7 + (leave ? 0.5 : 0), vs.t0 + 1.2 + (leave ? 0.5 : 0), tt) : 0,
     waveA: ui.view === 'beam' ? smooth(vs.t0 + 0.8, vs.t0 + 1.4, tt) : vs.prev === 'beam' ? 1 - smooth(vs.t0, vs.t0 + 0.4, tt) : 0,
+    filmOut: ui.view === 'housing' ? smooth(vs.t0 + 0.1, vs.t0 + 0.9, tt) : leave ? 1 - smooth(vs.t0 + 0.5, vs.t0 + 1.2, tt) : 0,
     labelA: ui.view === 'housing' ? smooth(vs.t0 + 2.3, vs.t0 + 2.8, tt) : 0 };
 }
 const toggle = (k, on = !ui[k]) => { ui[k] = on; document.querySelector(`[data-act="${k}"]`).classList.toggle('on', on); };
@@ -354,7 +355,7 @@ const LABELS = [
 function callouts(V, rect, sr, s) {
   const w = stage.offsetWidth, h = stage.offsetHeight;
   const at = (p) => { const q = hero.project(p, rect); return [(q.x - sr.left) / s, (q.y - sr.top) / s]; };
-  if (V.labelA > 0 && w > 0) return CO.labels(explode.groups.map((g) => ({ id: g.key, text: t(g.key), at: at(explode.anchor(g)), side: Math.sign(explode.anchor(g).x - 0.0) || 1 })), { w, h, a: V.labelA, top: 24, bottom: h - film.offsetTop + 8, inset: 12 });
+  if (V.labelA > 0 && w > 0) return CO.labels(explode.groups.map((g) => { const p = at(explode.anchor(g)); return { id: g.key, text: t(g.key), at: p, side: p[0] < w * 0.5 ? -1 : 1 }; }), { w, h, a: V.labelA, top: 60, bottom: h - 60, inset: 12 });
   if (!(V.callA > 0 && w > 0)) return CO.hide();
   CO.labels(LABELS.map((b) => ({ ...b, text: t(b.key), at: at(b.local) })), { w, h, a: V.callA, top: 24, bottom: h - film.offsetTop + 8, inset: 12 });
 }
@@ -377,7 +378,13 @@ function frame(tt) {
   const centreAt = { x: sr.left + sr.width * V.pose.cx, y: sr.top + sr.height * V.pose.cy };
   if (sr.bottom > 0 && sr.top < vh) hero.render(rect, centreAt, ppm, vh);
   callouts(V, rect, sr, s);
-  drawFilm(S, V, tt);
+  // Overview: the film slides down out of the stage, so the explode has the whole stage
+  const fo = V.filmOut;
+  film.style.transform = fo > 0 ? `translateY(${(fo * 105).toFixed(2)}%)` : '';
+  film.style.opacity = fo > 0 ? String(1 - fo) : '';
+  film.style.visibility = fo >= 1 ? 'hidden' : '';
+  link.style.opacity = String(1 - fo);
+  if (fo < 1) drawFilm(S, V, tt);
   drawLink(S, rect, sr, s);
   if (V.e > 0) explode.apply(0);                             // the drawings show the assembled probe
   drawings.render(vh, s);

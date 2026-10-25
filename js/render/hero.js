@@ -6,7 +6,7 @@ import { DIM } from '../build/probe.js';
 
 export const VIEWS = {
   // az: camera azimuth from +X toward +Z (the cut side); tx / ty: target offset (m); cx / cy: where the target lands
-  housing: { az: 62, el: 10, zoom: 0.36, ty: 0.09, cy: 0.27, cx: 0.45 },
+  housing: { az: 62, el: 10, zoom: 0.44, ty: 0.08, cy: 0.56, cx: 0.5 },
   cutaway: { az: 124, el: 20, zoom: 0.76, ty: 0.03, cy: 0.12 },
   beam: { az: 96, el: 6, zoom: 1.15, ty: -0.01 },
   array: { az: 104, el: 4, zoom: 3.0, tx: -0.012, ty: -0.03, cy: 0.3 },
