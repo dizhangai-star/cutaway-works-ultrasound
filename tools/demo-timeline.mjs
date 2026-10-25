@@ -43,6 +43,7 @@ D.captions = caps; D.cmds = cmds; D.camera = camera; D.spot = spot
 D.initial = { view: 'section', t0: -10 }; D.len = +(t + 0.6).toFixed(2)
 D.note = 'The scripted demo (S5), timed to the voice: caption slots = the longer of the zh / en takes + 0.9 s, holds before view changes. Film time in seconds. cmds drive the real page (views, freeze / scan, sets); camera / spot / captions are the film\'s own layers (selectors of ultrasound.html).'
 fs.writeFileSync('demo.json', JSON.stringify(D, null, 2) + '\n')
+const F = JSON.parse(fs.readFileSync('film.json', 'utf8')); F.len = D.len; fs.writeFileSync('film.json', JSON.stringify(F, null, 2) + '\n')   // the recorder's length
 const sp = caps.reduce((a, c) => a + Math.max(zh[c.id] ?? 0, 0), 0)
 console.log('len', D.len, 'speech zh', Object.values(zh).reduce((a, b) => a + b).toFixed(1), 'en', Object.values(en).reduce((a, b) => a + b).toFixed(1))
 for (const c of caps) console.log(c.t.toFixed(2).padStart(7), c.d, c.zh)
