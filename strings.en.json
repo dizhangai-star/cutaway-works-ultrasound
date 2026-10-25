@@ -102,5 +102,13 @@
   "ctl.dr": "D. RANGE",
   "ctl.lin": "9 MHz",
   "ctl.lin.t": "A linear probe's 9 MHz on this sector: sharper, shallower",
-  "ctl.reset.t": "Reset parameters and camera (R)"
+  "ctl.reset.t": "Reset parameters and camera (R)",
+  "x.back": "back shell + label",
+  "x.front": "front shell + grips",
+  "x.board": "beamformer board",
+  "x.heat": "heat spreader",
+  "x.cable": "cable + strain relief",
+  "w.focus": "FOCUS",
+  "w.el": "ELEMENTS",
+  "w.pen": "REACH"
 }
