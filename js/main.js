@@ -16,7 +16,7 @@ import { dim, centre, label } from './ui/dims.js';
 import { createClock } from './film.js';
 import { createLayout } from './layout.js';
 import { bindSlider, bindFader, bindOrbit } from './ui/controls.js';
-import { createSim, bmode, scanConvert, sectorPx, toXY, PROBE, PH, delays } from './sim.js';
+import { createSim, bmode, scanConvert, sectorPx, toXY, PROBE, PH, delays, penetration, lambda } from './sim.js';
 import { createCallouts } from './ui/callouts.js';
 import { createExplode } from './render/explode.js';
 import { explodeGroups, explodeFrame } from './build/parts.js';
@@ -145,6 +145,13 @@ function ensureB(S, sync) {
   clearTimeout(ensureB.tm); ensureB.tm = setTimeout(() => { B = bmode(bParams(sim.read())); bKey = JSON.stringify(bParams(sim.read())); bimgKey = ''; clock?.redraw(); }, 250);
 }
 
+// view 4 Freq.: the same phantom at 9 MHz (the linear probe's frequency), computed once per parameter set
+let B9 = null, b9Key = '', off9 = null, off9Key = '';
+function ensureB9(S) {
+  const key = JSON.stringify({ ...bParams(S), f: 9 });
+  if (key !== b9Key) { B9 = bmode({ ...bParams(S), f: 9 }); b9Key = key; off9Key = ''; }
+}
+
 const smooth = (a, b, x) => { const u = Math.min(1, Math.max(0, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
 function state(tt) {
   advance(tt);
@@ -178,6 +185,7 @@ function viewState(tt) {
   const pose = viewPose(VIEWS[vs.prev], VIEWS[ui.view], leave ? smooth(vs.t0 + 0.5, vs.t0 + 1.6, tt) : u);
   return { pose, e, callA: ui.view !== 'housing' ? smooth(vs.t0 + 0.7 + (leave ? 0.5 : 0), vs.t0 + 1.2 + (leave ? 0.5 : 0), tt) : 0,
     waveA: ui.view === 'beam' ? smooth(vs.t0 + 0.8, vs.t0 + 1.4, tt) : vs.prev === 'beam' ? 1 - smooth(vs.t0, vs.t0 + 0.4, tt) : 0,
+    splitA: ui.view === 'array' ? smooth(vs.t0 + 0.8, vs.t0 + 1.6, tt) : vs.prev === 'array' ? 1 - smooth(vs.t0, vs.t0 + 0.4, tt) : 0,
     filmOut: ui.view === 'housing' ? smooth(vs.t0 + 0.1, vs.t0 + 0.9, tt) : leave ? 1 - smooth(vs.t0 + 0.5, vs.t0 + 1.2, tt) : 0,
     labelA: ui.view === 'housing' ? smooth(vs.t0 + 2.3, vs.t0 + 2.8, tt) : 0 };
 }
@@ -258,6 +266,7 @@ function drawFilm(S, V, tt) {
     const a = toFilm(g, ...toXY(th, 0)), b = toFilm(g, ...toXY(th, B.depth));
     c.strokeStyle = 'rgba(220, 240, 255, 0.28)'; c.lineWidth = 1.2; c.beginPath(); c.moveTo(...a); c.lineTo(...b); c.stroke();
   }
+  if (V.splitA > 0) split(c, g, S, V.splitA, k, W, H);
   if (V.waveA > 0) wavelets(c, g, S, V.waveA, tt);
   // transmit focus: a small red mark on the right edge at the focal depth, as on a scanner
   const fy = TOP + S.focus / g.px;
@@ -266,6 +275,44 @@ function drawFilm(S, V, tt) {
   const a = toFilm(g, ...toXY(S.stone.th, 0)), b = toFilm(g, ...toXY(S.stone.th, B.depth));
   c.strokeStyle = 'rgba(255, 58, 50, 0.9)'; c.lineWidth = 1; c.setLineDash([4, 3]); c.beginPath(); c.moveTo(...a); c.lineTo(...b); c.stroke(); c.setLineDash([]);
   if (bmarksKey !== `${bimgKey}-${document.documentElement.lang}`) marks(g);
+}
+// view 4 Freq.: the right half of the sector becomes the 9 MHz image (sharper speckle, λ 0.17 mm, but it fades
+// before the stone); a dashed arc marks each frequency's penetration (sim.penetration, the same budget)
+function split(c, g, S, a, k, W, H) {
+  ensureB9(S);
+  const key = `${b9Key}-${S.dr}-${W}-${H}`;
+  if (key !== off9Key) {
+    off9 = document.createElement('canvas'); off9.width = W; off9.height = H;
+    off9.getContext('2d').putImageData(new ImageData(scanConvert(B9, W, H, { top: TOP * k, dr: S.dr }), W, H), 0, 0);
+    off9Key = key;
+  }
+  const x0 = g.W / 2 + (1 - a) * g.W / 2;                                  // the split wipes in from the right
+  c.save(); c.beginPath(); c.rect(x0, 0, g.W - x0, g.H); c.clip();
+  c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(x0 * k, 0, W, H); c.drawImage(off9, 0, 0); c.setTransform(k, 0, 0, k, 0, 0);
+  c.restore();
+  const [ox, oy] = toFilm(g, 0, -PROBE.roc), f = PROBE.fov / 2, R = PROBE.roc;
+  c.save(); c.globalAlpha = a;
+  c.strokeStyle = 'rgba(235, 242, 248, 0.8)'; c.lineWidth = 1; c.beginPath(); c.moveTo(x0, TOP - 4); c.lineTo(x0, g.H - 6); c.stroke();
+  c.font = '500 10px "IBM Plex Mono", "Noto Sans SC", monospace'; c.setLineDash([4, 3]);
+  const sides = [[S.f, Math.PI / 2, Math.PI / 2 + f, 'right'], [9, Math.PI / 2 - f, Math.PI / 2, 'left']];
+  for (let [fq, a0, a1, al] of sides) {
+    const pen = Math.min(penetration(fq), B.depth), r = (R + pen) / g.px;
+    c.strokeStyle = 'rgba(255, 58, 50, 0.95)'; c.beginPath(); c.arc(ox, oy, r, a0, a1); c.stroke();
+    const tag = (txt, x, y) => {                                         // red mono text on a dark chip
+      const w = c.measureText(txt).width, bx = al === 'right' ? x - w - 4 : x - 4;
+      c.setLineDash([]); c.fillStyle = 'rgba(6, 10, 16, 0.78)'; c.fillRect(bx, y - 10, w + 8, 14);
+      c.fillStyle = 'rgba(255, 120, 110, 1)'; c.fillText(txt, x, y); c.setLineDash([4, 3]);
+    };
+    c.textAlign = al;
+    tag(`${num(fq, 1)} MHz · λ ${num(lambda(fq), 2)} mm`, al === 'right' ? x0 - 8 : x0 + 8, TOP + 14);
+    // penetration: at the sector's outer edge, outside the picture
+    const ang = al === 'right' ? a1 : a0, ex = ox + Math.cos(ang) * r, ey = oy + Math.sin(ang) * r;
+    c.textAlign = al === 'right' ? 'left' : 'right';                     // inward from the sector's edge
+    const al0 = al; al = c.textAlign;
+    tag(`${t('w.pen')} ${num(penetration(fq) / 10, 0)} cm`, ex + (al === 'left' ? 8 : -8), ey + 16);
+    al = al0;
+  }
+  c.restore();
 }
 // view 3 Pulse: one transmit, slowed ≈ 40 000×. Every active element sends its own wavelet at its own delay
 // (sim.delays, the far elements first); nothing else is drawn, the focused front is their envelope (Huygens).
@@ -367,7 +414,7 @@ function frame(tt) {
   applyCut(ui.view !== 'housing');
   hero.setView(V.pose);
   explode.apply(V.e);
-  fx.update({ th: S.stone.th, on: ui.view === 'housing' ? 0 : 1, t: S.frozen ? 0.95 : tt });
+  fx.update({ th: S.stone.th, on: ui.view === 'housing' || ui.view === 'array' ? 0 : 1, t: S.frozen ? 0.95 : tt });
   const o = ui.orbit, drift = driftAt(tt);
   hero.setExtra({ az: drift.az + o.az, el: o.el, zoom: drift.zoom * o.zoom });
 
@@ -383,7 +430,7 @@ function frame(tt) {
   film.style.transform = fo > 0 ? `translateY(${(fo * 105).toFixed(2)}%)` : '';
   film.style.opacity = fo > 0 ? String(1 - fo) : '';
   film.style.visibility = fo >= 1 ? 'hidden' : '';
-  link.style.opacity = String(1 - fo);
+  link.style.opacity = String(1 - Math.max(fo, V.splitA));
   if (fo < 1) drawFilm(S, V, tt);
   drawLink(S, rect, sr, s);
   if (V.e > 0) explode.apply(0);                             // the drawings show the assembled probe
