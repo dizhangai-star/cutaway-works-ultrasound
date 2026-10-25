@@ -63,6 +63,8 @@
   "b.gb": "GALLBLADDER",
   "b.stone": "STONE",
   "b.shadow": "ACOUSTIC SHADOW",
+  "u.stone": "STONE Ø {dia} mm\n{d} cm deep · echo {us} µs",
+  "u.shadow": "SHADOW {w} mm wide @ {at} cm\nno sound gets past",
   "b.kidney": "KIDNEY",
   "b.liver": "LIVER",
   "dwg.front": "1 · FRONT · SECTOR GEOMETRY",
