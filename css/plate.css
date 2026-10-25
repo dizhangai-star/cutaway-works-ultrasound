@@ -44,14 +44,15 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .head-tags i:first-child { border-left: 0; }
 .head-sheet { font-size: 13px; padding-left: 14px; border-left: 1px solid var(--rule-soft); }
 /* language switch (generic plate furniture): a quiet globe at the far right of the header */
-.head-lang { pointer-events: auto; width: 22px; height: 22px; margin-left: -14px; padding: 3px; color: var(--ink-2); opacity: 0.6; }
-.head-lang:hover, .head-lang:focus-visible { opacity: 1; color: var(--ink); }
-html.rec .head-lang, html.rec .head-bg { display: none; }               /* one render per language: no switch in the film */
+.head-lang, .head-theme { pointer-events: auto; width: 22px; height: 22px; margin-left: -14px; padding: 3px; color: var(--ink-2); opacity: 0.6; }
+.head-lang:hover, .head-lang:focus-visible, .head-theme:hover, .head-theme:focus-visible { opacity: 1; color: var(--ink); }
+html.rec .head-lang, html.rec .head-bg, html.rec .head-theme { display: none; }   /* one render per language × theme: no switches in the film */
 /* background picker (preview only, never in the film: the recording takes ?bg=) */
 .head .head-bg { pointer-events: auto; display: inline-flex; align-items: center; gap: 5px; height: 22px; white-space: nowrap; margin-left: -14px; padding: 3px; color: var(--ink-2); opacity: 0.6; font-size: 10px; letter-spacing: 0.06em; }
 .head-bg:hover, .head-bg:focus-visible { opacity: 1; color: var(--ink); }
 .head-bg svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.1; }
-.head-lang svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.1; }
+.head-theme svg path { fill: currentColor; stroke: none; }
+.head-lang svg, .head-theme svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.1; }
 
 /* left column */
 .col-left { left: 14px; top: 48px; width: 300px; height: 418px; padding: 12px 16px; }
@@ -91,7 +92,7 @@ html[lang="zh"] .intro { font-size: 12px; line-height: 1.6; }
 .views button { padding: 0 2px; letter-spacing: 0.03em; }
 .views button, .toggles button { height: 24px; border: 1px solid var(--rule-soft); font: 600 12px/1 "Barlow Condensed", "Noto Sans SC", sans-serif; letter-spacing: 0.06em; }
 .views button.on { border-color: var(--ink); background: rgba(127, 160, 180, 0.14); }
-.toggles { margin-top: 6px; display: grid; grid-template-columns: 1.15fr 1fr 1fr 28px; gap: 4px; }
+.toggles { margin-top: 6px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
 .toggles button { border-color: transparent; color: var(--ink-2); }
 .toggles button.on { color: var(--ink); border-color: var(--rule-soft); }
 .toggles button.on::before { content: ""; display: inline-block; width: 5px; height: 5px; margin: 0 5px 1px 0; border-radius: 50%; background: var(--accent); }
@@ -217,7 +218,7 @@ html.phone .head { order: 0; height: 30px; gap: 12px; }
 html.phone .head-left { font-size: 13px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 html.phone .head-tags { display: none; }
 html.phone .head-sheet { font-size: 11px; white-space: nowrap; }
-html.phone .head-lang { margin-left: -4px; }
+html.phone .head-lang, html.phone .head-theme { margin-left: -4px; }
 html.phone .col-text { order: 1; }
 html.phone .title { font-size: 72px; }
 html.phone[lang="zh"] .title { font-size: 68px; }
@@ -228,7 +229,7 @@ html.phone .narr { left: 12px; right: 12px; bottom: 10px; font-size: 14px; }
 html.phone .col-ctl { order: 3; }
 html.phone .knob-row { margin-top: 0; }
 html.phone .views button, html.phone .toggles button { height: 34px; font-size: 13px; }
-html.phone .toggles { grid-template-columns: 1.15fr 1fr 1fr 34px 40px; }
+html.phone .toggles { grid-template-columns: repeat(3, 1fr); }
 html.phone .slider { grid-template-columns: 30px 1fr 50px; }
 html.phone .seg button { height: 30px; font-size: 13px; }
 html.phone .legend, html.phone .leaders, html.phone .callouts { display: none; }
