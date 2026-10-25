@@ -46,7 +46,11 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 /* language switch (generic plate furniture): a quiet globe at the far right of the header */
 .head-lang { pointer-events: auto; width: 22px; height: 22px; margin-left: -14px; padding: 3px; color: var(--ink-2); opacity: 0.6; }
 .head-lang:hover, .head-lang:focus-visible { opacity: 1; color: var(--ink); }
-html.rec .head-lang { display: none; }               /* one render per language: no switch in the film */
+html.rec .head-lang, html.rec .head-bg { display: none; }               /* one render per language: no switch in the film */
+/* background picker (preview only, never in the film: the recording takes ?bg=) */
+.head .head-bg { pointer-events: auto; display: inline-flex; align-items: center; gap: 5px; height: 22px; white-space: nowrap; margin-left: -14px; padding: 3px; color: var(--ink-2); opacity: 0.6; font-size: 10px; letter-spacing: 0.06em; }
+.head-bg:hover, .head-bg:focus-visible { opacity: 1; color: var(--ink); }
+.head-bg svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.1; }
 .head-lang svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.1; }
 
 /* left column */

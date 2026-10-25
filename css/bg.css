@@ -1,0 +1,35 @@
+/* paper backgrounds: html[data-bg] (?bg=…), default = grid (plate.css). Each keeps the glow + vignette and
+   uses only the theme tokens, so dark and light both work. */
+:root { --bg-glow: radial-gradient(ellipse 46% 52% at 50% 40%, var(--paper-glow) 0%, transparent 70%);
+  --bg-vig: radial-gradient(ellipse 80% 80% at 50% 45%, transparent 55%, var(--paper-edge) 100%); }
+
+/* dots: engineering dot paper, a cross every 5th */
+html[data-bg="dots"] .paper .glow { background: var(--bg-glow), var(--bg-vig),
+  radial-gradient(circle, var(--grid-strong) 1.1px, transparent 1.6px) 0 0 / 12px 12px,
+  radial-gradient(circle, var(--rule-soft) 1.4px, transparent 2px) -6px -6px / 60px 60px; }
+
+/* iso: isometric 30° ruling, for drawings that read as axonometric */
+html[data-bg="iso"] .paper .glow { background: var(--bg-glow), var(--bg-vig),
+  repeating-linear-gradient(30deg, var(--grid) 0 1px, transparent 1px 14px),
+  repeating-linear-gradient(150deg, var(--grid) 0 1px, transparent 1px 14px),
+  repeating-linear-gradient(90deg, var(--grid) 0 1px, transparent 1px 24.25px); }
+
+/* polar: range rings + bearing lines from the hero, a sonar / scanner plot (ultrasound, CT, radar) */
+html[data-bg="polar"] .paper .glow { background: var(--bg-glow), var(--bg-vig),
+  repeating-radial-gradient(circle at 50% 40%, transparent 0 59px, var(--grid-strong) 59px 60px),
+  repeating-radial-gradient(circle at 50% 40%, transparent 0 11px, var(--grid) 11px 12px),
+  repeating-conic-gradient(from 0deg at 50% 40%, var(--grid-strong) 0 0.12deg, transparent 0.12deg 15deg); }
+
+/* hatch: blueprint, fine 45° hatching, no ruling */
+html[data-bg="hatch"] .paper .glow { background: var(--bg-glow), var(--bg-vig),
+  repeating-linear-gradient(45deg, var(--grid) 0 1px, transparent 1px 7px); }
+
+/* film: no ruling, a lightbox — grain + a soft horizontal light-table seam */
+html[data-bg="film"] .paper .glow { background: var(--bg-glow), var(--bg-vig),
+  linear-gradient(transparent 49.9%, var(--grid-strong) 50%, transparent 50.1%),
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.85 0 0 0 0 0.9 0 0 0 0 0.93 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E") 0 0 / 160px 160px; }
+
+/* scan: CRT / monitor raster, fine horizontal lines + a major line every 60 px */
+html[data-bg="scan"] .paper .glow { background: var(--bg-glow), var(--bg-vig),
+  repeating-linear-gradient(0deg, var(--grid) 0 1px, transparent 1px 3px),
+  linear-gradient(var(--grid-strong) 1px, transparent 1px) 0 0 / 100% 60px; }
