@@ -1,42 +1,39 @@
 #!/usr/bin/env node
-// X-ray tube score + machine sound, written in code (Sprint 6b). Style B (user, 2026-10-21): quiet, clinical, a
-// lightbox room: glass pads and a low drone, almost no percussion; the machine (rotor, contactor, console) keeps time.
-// Every machine sound comes from the solver replaying demo.json: rotor hum = the true rotation frequency (rpm / 60,
-// 161.7 Hz at 9 700 rpm) with the stator's 2× hum and bearing noise, louder while the motor boosts or brakes.
+// Ultrasound probe score + machine sound, written in code (Sprint 6). Series style B (xray, user 2026-10-21; kept for
+// No. 03): quiet, clinical, glass pads and a low drone, no percussion. The probe is silent, so the "machine" stem
+// sonifies the solver's drawn sweep replayed from demo.json (one tick per scan line, a ping per frame, stops on freeze).
 // Four stems on the film's audio timeline (film time × K, K = the render's --rate), 48 kHz stereo float WAV, unscaled:
 //   BED  drone + air, always (ducked a little under the voice by tools/mix.mjs)
 //   MID  glass pads + tines (ducked deeply under the voice), with its reverb
-//   MAC  rotor, contactor clunks, exposure hiss, console beeps
-//   UI   knob detents, slider ticks, view swipes, interlock tones
-//   node audio/score.mjs [--rate 1.15]  → audio/build/{bed,mid,mac,ui}.wav
+//   MAC  scan-line ticks, stone tick, frame pings
+//   UI   knob detents, view swipes
+//   node audio/score.mjs [--rate 1]  → audio/build/{bed,mid,mac,ui}.wav
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { hz, panG, rng, freeverb } from '../../../_kit/audio/dsp.mjs'
-import { createSim } from '../js/sim.js'
+import { createSim, stoneLine, PROBE } from '../js/sim.js'
 import { plan } from '../js/demo-plan.js'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url)), ROOT = path.resolve(HERE, '..')
-const argv = process.argv.slice(2), K = +(argv[argv.indexOf('--rate') + 1] || 1.15) || 1.15
+const argv = process.argv.slice(2), K = +(argv[argv.indexOf('--rate') + 1] || 1) || 1
 const D = JSON.parse(fs.readFileSync(path.join(ROOT, 'demo.json'), 'utf8')), PL = plan(D)
 const SR = 48000, LEN = D.len * K, N = Math.ceil(LEN * SR), A = (t) => t * K   // film time → audio time
 const bus = () => [new Float32Array(N), new Float32Array(N)]
 const BED = bus(), MID = bus(), MAC = bus(), UI = bus()
-const { rnd } = rng(7252)
+const { rnd } = rng(5202)
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x)), sm = (u) => (u = clamp(u), u * u * (3 - 2 * u))
 
-// ---------- the solver, replayed (film time, 1/240 s)
-const DT = 1 / 240, trace = { rpm: [], on: [] }, events = []
+// ---------- the solver, replayed (film time, 1/240 s): drawn sweep line, frozen or scanning
+const DT = 1 / 240, trace = { line: [], frozen: [] }
 {
-  const sim = createSim({ kv: 120, ma: 100, ms: 4000, focus: 'auto' }); let i = 0
+  const sim = createSim(); let i = 0
   for (let t = 0; t <= D.len + 1e-9; t += DT) {
     while (i < PL.sim.length && PL.sim[i].t <= t + 1e-9) { const c = PL.sim[i++]; c.k === 'set' ? sim.set(c.p, c.v) : sim[c.k]() }
-    const r = sim.step(DT); trace.rpm.push(r.rpm || 0); trace.on.push(r.on ? 1 : 0)
+    const r = sim.step(DT); trace.line.push(r.line); trace.frozen.push(r.frozen ? 1 : 0)
   }
-  for (const e of sim.events) events.push(e)
 }
-const at = (arr, tf) => { const x = tf / DT, i = Math.floor(x); return i + 1 >= arr.length ? arr[arr.length - 1] : arr[i] + (arr[i + 1] - arr[i]) * (x - i) }
-
+const STONE = Math.floor((stoneLine().th + PROBE.fov / 2) / PROBE.fov * PROBE.lines)   // the line through the stone
 // ---------- voices
 function tone(b, t, d, f, v, pan, { atk = 0.002, dec = 0, rel = 0.01 } = {}) {   // sine, attack / exp decay / release
   const s0 = Math.floor(t * SR), n = Math.min(Math.ceil((d + rel) * SR), N - s0); if (n <= 0 || s0 < 0) return
@@ -96,21 +93,18 @@ function drone(t0, t1, m, v) {
     BED[0][s] += lpL * e; BED[1][s] += lpR * e
   }
 }
-// ---------- harmony (film time): E-centred, glass voicings in octave 4–5, lydian lift at the end
-// MIDI: E1 28, G1 31, A1 33, B1 35, C2 36, E2 40 | B3 59, C4 60, D4 62, E4 64, F#4 66, G4 67, G#4 68, A4 69, B4 71, C5 72, D#5 75, E5 76, F#5 78, G5 79, B5 83
+// ---------- harmony (film time), per demo section: E-centred glass voicings, lydian lift at the end
 const SECT = [
-  [0, 4.2, 28, [64, 67, 71, 78]],         // cold open: Em(add9) — the result
-  [4.2, 11, 36, [64, 67, 71, 76]],        // the tube: Cmaj7
-  [11, 20.6, 33, [60, 64, 67, 71]],       // cathode, rotor: Am9
-  [20.6, 35, 28, [59, 64, 66, 71]],       // beam: Esus2
-  [35, 42.8, 31, [62, 66, 67, 71]],       // spectrum: Gmaj7
-  [42.8, 52.4, 36, [64, 66, 67, 71]],     // heat: C lydian
-  [52.4, 63.7, 33, [60, 64, 71, 76]],     // focal spot, rating: Am(add9)
-  [63.7, 68.3, 35, [64, 66, 71, 76]],     // interlock: Bsus4
-  [68.3, 74.5, 31, [62, 64, 67, 71]],     // exploded: G6
-  [74.5, 85.7, 33, [60, 64, 67, 71]],     // use shot: Am9
-  [85.7, 91, 36, [64, 67, 71, 74]],       // kV up: Cmaj9
-  [91, D.len, 28, [68, 71, 75, 78]],      // chest at 120 kV: E(add9), the end
+  [0, 9.71, 28, [64, 67, 71, 78]],        // cold open: the stone on the film, Em(add9)
+  [9.71, 19.5, 36, [64, 67, 71, 76]],     // the probe: Cmaj7
+  [19.5, 38, 33, [60, 64, 67, 71]],       // cut open, the stack: Am9
+  [38, 51.45, 28, [59, 64, 66, 71]],      // the pulse, focusing: Esus2
+  [51.45, 66.2, 31, [62, 66, 67, 71]],    // frozen line, echo times: Gmaj7
+  [66.2, 77.88, 33, [60, 64, 71, 76]],    // the shadow: Am(add9)
+  [77.88, 84.34, 36, [64, 66, 67, 71]],   // scanning again, a frame: C lydian
+  [84.34, 98.99, 35, [64, 66, 71, 76]],   // the array, frequency vs depth: Bsus4
+  [98.99, 112.4, 33, [60, 64, 67, 71]],   // the use shot again: Am9
+  [112.4, D.len, 28, [68, 71, 75, 78]],   // the end: E(add9)
 ]
 for (const [t0, t1, root, ch] of SECT) {
   const a0 = A(t0), a1 = A(t1), last = t1 >= D.len
@@ -128,53 +122,30 @@ D.captions.forEach((c, i) => {
   for (let k = 0; k < n; k++) tine(A(end + 0.12 + k * 0.32), ch[(i + k) % 4] + 12, 0.05 * (1 - k * 0.2), (k - 1) * 0.3)
 })
 // the end: a last high tine on the downbeat of the final chord
-tine(A(91.2), 80, 0.06, 0); tine(A(91.55), 83, 0.045, 0.2)
+tine(A(112.6), 80, 0.06, 0); tine(A(112.95), 83, 0.045, 0.2)
 
-// sub blooms (no drums): a 45 Hz swell under the four reveals — the result, exploded, the radiograph, the end
-for (const [t, v] of [[1.1, 0.3], [68.3, 0.22], [74.5, 0.22], [91, 0.3]]) {
+// sub blooms (no drums): a 45 Hz swell under the reveals — the result, the cut, the shadow, the end
+for (const [t, v] of [[0.9, 0.3], [19.5, 0.2], [66.2, 0.22], [112.4, 0.3]]) {
   const a0 = A(t) - 0.6, s0 = Math.floor(a0 * SR), n = Math.min(Math.ceil(4.5 * SR), N - s0), ph = rnd() * 6.28
   for (let i = 0; i < n; i++) { const u = i / SR, e = u < 0.6 ? sm(u / 0.6) : Math.exp(-(u - 0.6) / 1.4), y = Math.sin(ph + 2 * Math.PI * (45 - 4 * Math.min(1, u / 3)) * u) * e * v; BED[0][s0 + i] += y; BED[1][s0 + i] += y }
 }
 
-// ---------- machine: rotor from the solver's rpm
+// ---------- machine: the probe itself is silent (MHz); the drawn sweep is sonified, honestly slowed like the picture
+// (DRAWN = 1/100): a faint tick per scan line (one transmit-receive), a brighter one on the stone's line, a soft
+// glass ping at each new frame; nothing while frozen, so the freeze is heard
 {
-  const ph = [0, 0, 0], RMAX = 9700; let prev = 0, boost = 0, lp = 0, bpn = [0, 0, 0, 0]
-  for (let s = 0; s < N; s++) {
-    const tf = s / SR / K, rpm = at(trace.rpm, tf), fr = rpm / 60
-    const d = Math.abs(rpm - prev) * SR * K; prev = rpm   // rpm per film second
-    boost += (clamp(d / 8000) - boost) * 0.0004
-    const u = rpm / RMAX; if (u < 0.002) { MAC[0][s] += 0; continue }
-    ph[0] += 2 * Math.PI * fr / SR; ph[1] += 2 * Math.PI * fr * 2.06 / SR; ph[2] += 2 * Math.PI * fr * 3 / SR   // rotor, stator 2× (slip), 3rd
-    const a = (0.35 + 0.65 * boost) * Math.min(1, u * 3)
-    let y = a * (0.5 * Math.sin(ph[0]) + 0.35 * Math.sin(ph[1]) * (0.3 + boost) + 0.12 * Math.sin(ph[2]))
-    // bearings: noise band that rises with speed (~1.2–4 kHz)
-    const fc = 1200 + 2800 * u, w = 2 * Math.PI * fc / SR, al = Math.sin(w) / 4, a0 = 1 + al, xin = rnd() * 2 - 1
-    const yb = (al * xin - al * bpn[1] + 2 * Math.cos(w) * bpn[2] - (1 - al) * bpn[3]) / a0
-    bpn[1] = bpn[0]; bpn[0] = xin; bpn[3] = bpn[2]; bpn[2] = yb
-    y += yb * 0.12 * u ** 1.5
-    lp += 0.2 * (y - lp)
-    MAC[0][s] += lp * 0.045; MAC[1][s] += lp * 0.045
+  let prev = trace.line[0]
+  for (let k = 1; k < trace.line.length; k++) {
+    if (trace.frozen[k]) { prev = trace.line[k]; continue }
+    const l = trace.line[k], t = A(k * DT)
+    if (l === prev) continue
+    if (l < prev) { tone(MAC, t, 0, 659.3, 0.022, 0, { atk: 0.006, rel: 1.2 }); tone(MAC, t, 0, 659.3 * 2.76, 0.005, 0, { rel: 0.2 }); tone(MAC, t, 0, 659.3 * 5.4, 0.002, 0, { rel: 0.06 }) }   // new frame: soft glass
+    const pan = (l / PROBE.lines - 0.5) * 1.2, hit = l === STONE
+    noise(MAC, t, 0.008, hit ? 0.1 : 0.05, pan, { bp: hit ? 2400 : 5200, q: 2.5, dec: 0.0015 })
+    if (hit) tone(MAC, t + 0.004, 0, 1975.5, 0.02, pan, { rel: 0.25 })
+    prev = l
   }
 }
-// exposures: contactor clunk in and out, HV hiss while the beam is on, the console's exposure beep
-{
-  let on = 0, t0 = 0
-  const clunk = (t, v) => { tone(MAC, t, 0, 62, v, 0, { rel: 0.12 }); tone(MAC, t, 0, 118, v * 0.4, 0, { rel: 0.05 }); noise(MAC, t, 0.02, v * 0.5, 0, { bp: 3200, q: 1.2, dec: 0.004 }) }
-  for (let k = 0; k <= trace.on.length; k++) {
-    const o = trace.on[k] ?? 0, tf = k * DT
-    if (o && !on) { t0 = tf; clunk(A(tf), 0.22) }
-    if (!o && on) {
-      const a0 = A(t0), a1 = A(tf), d = a1 - a0
-      clunk(a1, 0.14)
-      noise(MAC, a0, d + 0.05, 0.010, 0, { bp: 6500, q: 0.6, shape: (u) => Math.min(1, u * (d + 0.05) / 0.08, (1 - u) * (d + 0.05) / 0.05) })
-      const beep = Math.max(0.28, Math.min(d, 0.6))   // short shots beep through; long ones: a start beep, an end beep
-      tone(MAC, a0 + 0.02, beep, 1760, 0.03, 0.3, { atk: 0.01, rel: 0.03 })
-      if (d > 1.2) tone(MAC, a1 - 0.25, 0.22, 1760, 0.025, 0.3, { atk: 0.01, rel: 0.03 })
-    }
-    on = o
-  }
-}
-
 // ---------- UI
 const knob = (t) => { noise(UI, t, 0.012, 0.25, -0.4, { bp: 3500, q: 1.5, dec: 0.002 }); tone(UI, t, 0, 920, 0.05, -0.4, { rel: 0.015 }) }
 for (const a of PL.acts) {
@@ -185,7 +156,6 @@ for (const a of PL.acts) {
 const detent = (t, v) => { noise(UI, t, 0.01, v, 0, { bp: 2600, q: 1.2, dec: 0.003 }); tone(UI, t, 0, 640, v * 0.25, 0, { rel: 0.03 }) }
 for (const v of PL.views) if (v.t > 0.5) { noise(UI, A(v.t) - 0.28, 0.55, 0.06, 0, { sweep: [700, 3200], q: 0.9, shape: (u) => Math.sin(Math.PI * u) ** 2 }); detent(A(v.t), 0.14) }
 detent(0.18, 0.12)
-for (const e of events) if (e.type === 'interlock') { tone(UI, A(e.t) + 0.05, 0.11, 880, 0.05, 0, { atk: 0.004, rel: 0.02 }); tone(UI, A(e.t) + 0.21, 0.16, 659, 0.05, 0, { atk: 0.004, rel: 0.04 }) }
 
 // ---------- ensemble on MID and BED: three slowly modulated delays per side (string-machine chorus, 7–19 ms)
 function ensemble(b, mix = 0.6) {
@@ -224,4 +194,4 @@ function writeF32(f, [L, R]) {
 }
 const out = path.join(HERE, 'build'); fs.mkdirSync(out, { recursive: true })
 for (const [k, b] of Object.entries({ bed: BED, mid: MID, mac: MAC, ui: UI })) writeF32(path.join(out, `${k}.wav`), b)
-console.log(`score ×${K}: ${LEN.toFixed(2)} s, ${events.filter((e) => e.type === 'expose-start').length} exposures → audio/build/{bed,mid,mac,ui}.wav`)
+console.log(`score ×${K}: ${LEN.toFixed(2)} s, stone line ${STONE} → audio/build/{bed,mid,mac,ui}.wav`)
