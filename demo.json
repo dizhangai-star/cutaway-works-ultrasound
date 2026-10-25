@@ -1,146 +1,43 @@
 {
-  "note": "The scripted demo (S5). Film time in seconds. cmds drive the real page (solver log, views, sliders, knob); camera / spot / captions are the film's own layers. Selectors are elements of xray.html; a camera 'fit' frames the union of its selectors. S5: captions = SCRIPT.md v1 with generous voicing slots; retimed to the voice next.",
-  "len": 192.4,
+  "note": "The scripted demo (S5), timed to the voice: caption slots = the longer of the zh / en takes + 0.9 s, holds before view changes. Film time in seconds. cmds drive the real page (views, freeze / scan, sets); camera / spot / captions are the film's own layers (selectors of ultrasound.html).",
+  "len": 124.3,
   "initial": {
-    "view": "image",
-    "t0": -1
+    "view": "section",
+    "t0": -10
   },
   "cmds": [
     {
       "t": 0,
-      "set": {
-        "kv": 120,
-        "ma": 400,
-        "ms": 10
-      }
+      "view": "section"
     },
     {
-      "t": 0.05,
-      "do": "expose"
-    },
-    {
-      "t": 4.2,
+      "t": 9.71,
       "view": "housing"
     },
     {
-      "t": 4.6,
-      "set": {
-        "kv": 60,
-        "ma": 50,
-        "ms": 10000
-      }
-    },
-    {
-      "t": 9.5,
+      "t": 19.5,
       "view": "cutaway"
-    },
-    {
-      "t": 11,
-      "do": "prep",
-      "click": "knob"
-    },
-    {
-      "t": 20.6,
-      "view": "beam"
-    },
-    {
-      "t": 21.6,
-      "do": "expose",
-      "click": "knob"
-    },
-    {
-      "t": 32,
-      "do": "expose",
-      "click": "knob"
-    },
-    {
-      "t": 33.4,
-      "ramp": {
-        "k": "kv",
-        "to": 68,
-        "dur": 2
-      }
     },
     {
       "t": 38,
-      "ramp": {
-        "k": "kv",
-        "to": 120,
-        "dur": 2
-      }
+      "view": "beam"
     },
     {
-      "t": 42.8,
-      "view": "cutaway"
+      "t": 51.45,
+      "do": "freeze"
     },
     {
-      "t": 43,
-      "set": {
-        "ma": 60
-      }
-    },
-    {
-      "t": 43.6,
-      "do": "expose",
+      "t": 77.88,
+      "do": "scan",
       "click": "knob"
     },
     {
-      "t": 59.1,
-      "ramp": {
-        "k": "ma",
-        "to": 600,
-        "dur": 1.6
-      }
+      "t": 84.34,
+      "view": "array"
     },
     {
-      "t": 63.7,
-      "do": "expose",
-      "click": "knob"
-    },
-    {
-      "t": 68.3,
-      "view": "exploded"
-    },
-    {
-      "t": 74.5,
-      "view": "image"
-    },
-    {
-      "t": 74.5,
-      "set": {
-        "kv": 120,
-        "ma": 400,
-        "ms": 10
-      }
-    },
-    {
-      "t": 76.5,
-      "do": "expose",
-      "click": "knob"
-    },
-    {
-      "t": 80.5,
-      "ramp": {
-        "k": "kv",
-        "to": 40,
-        "dur": 1.2
-      }
-    },
-    {
-      "t": 85.7,
-      "ramp": {
-        "k": "kv",
-        "to": 150,
-        "dur": 3
-      }
-    },
-    {
-      "t": 90.3,
-      "ramp": {
-        "k": "kv",
-        "to": 120,
-        "dur": 1
-      }
+      "t": 98.99,
+      "view": "section"
     }
   ],
   "camera": [
@@ -148,143 +45,52 @@
       "t": 0,
       "dur": 0,
       "fit": [
-        "#film"
+        "#stage"
       ],
-      "pad": 0.04
+      "pad": 0.02
     },
     {
-      "t": 4.2,
-      "dur": 1.8,
+      "t": 9.71,
+      "dur": 1.4,
       "full": true
     },
     {
-      "t": 7.4,
-      "dur": 1.6,
-      "fit": [
-        "#stage"
-      ]
-    },
-    {
-      "t": 9.9,
-      "dur": 1,
-      "fit": [
-        ".col-left",
-        "#stage"
-      ]
-    },
-    {
-      "t": 11.6,
-      "dur": 1.2,
-      "fit": [
-        "#stage"
-      ],
-      "z": 2.5,
-      "at": [
-        0.44,
-        0.5
-      ]
-    },
-    {
-      "t": 16,
-      "dur": 1.2,
-      "fit": [
-        "#stage",
-        ".panel.heat"
-      ]
-    },
-    {
-      "t": 20.4,
-      "dur": 1.2,
-      "fit": [
-        ".col-left",
-        "#stage"
-      ]
-    },
-    {
-      "t": 22,
-      "dur": 1.2,
-      "fit": [
-        "#stage"
-      ]
-    },
-    {
-      "t": 31.4,
-      "dur": 1.2,
-      "full": true
-    },
-    {
-      "t": 35,
-      "dur": 1.2,
-      "fit": [
-        ".panel.spectrum"
-      ],
-      "pad": 0.06
-    },
-    {
-      "t": 42.6,
+      "t": 19.5,
       "dur": 1.4,
       "fit": [
-        "#stage",
-        ".panel.heat"
-      ]
-    },
-    {
-      "t": 48.2,
-      "dur": 1.2,
-      "fit": [
-        ".panel.heat"
+        "#stage"
       ],
-      "pad": 0.06
+      "pad": 0.03
     },
     {
-      "t": 52.4,
-      "dur": 1.2,
-      "fit": [
-        "#stage",
-        ".panel.heat"
-      ]
+      "t": 38,
+      "dur": 1.4,
+      "full": true
     },
     {
-      "t": 58.5,
-      "dur": 1.2,
-      "fit": [
-        ".col-left",
-        ".panel.rating"
-      ]
+      "t": 77.88,
+      "dur": 1.4,
+      "full": true
     },
     {
-      "t": 61.1,
-      "dur": 1.2,
-      "fit": [
-        ".panel.rating"
-      ],
-      "pad": 0.05
-    },
-    {
-      "t": 67.9,
-      "dur": 1.6,
+      "t": 84.34,
+      "dur": 1.4,
       "fit": [
         "#stage"
-      ]
+      ],
+      "pad": 0.02
     },
     {
-      "t": 74.3,
-      "dur": 1.6,
+      "t": 98.99,
+      "dur": 1.4,
       "fit": [
         "#stage"
-      ]
-    },
-    {
-      "t": 79.9,
-      "dur": 1.2,
-      "fit": [
-        "#film"
       ],
-      "pad": 0.05
+      "pad": 0.02
     },
     {
-      "t": 91,
-      "dur": 2.4,
+      "t": 117.77,
+      "dur": 1.4,
       "full": true
     }
   ],
@@ -292,104 +98,103 @@
     {
       "t": 0,
       "dur": 0,
-      "on": [
-        "#film"
-      ],
-      "a": 0.94
-    },
-    {
-      "t": 4.2,
-      "dur": 0.8,
       "off": true
     },
     {
-      "t": 11.6,
+      "t": 32.81,
       "dur": 0.6,
       "on": [
-        "#stage"
+        ".d-array"
       ],
-      "a": 0.6
+      "a": 0.55
     },
     {
-      "t": 16,
+      "t": 38,
       "dur": 0.6,
       "on": [
         "#stage",
-        ".panel.heat"
+        ".panel.pulse"
       ],
-      "a": 0.6
+      "a": 0.55
     },
     {
-      "t": 20.4,
-      "dur": 0.6,
-      "off": true
-    },
-    {
-      "t": 22,
-      "dur": 0.6,
-      "on": [
-        "#stage"
-      ],
-      "a": 0.6
-    },
-    {
-      "t": 31.4,
-      "dur": 0.6,
-      "on": [
-        ".col-ctl",
-        ".panel.spectrum"
-      ],
-      "a": 0.6
-    },
-    {
-      "t": 42.6,
+      "t": 45.31,
       "dur": 0.6,
       "on": [
         "#stage",
-        ".panel.heat"
+        ".panel.delay"
       ],
-      "a": 0.6
+      "a": 0.55
     },
     {
-      "t": 58.5,
+      "t": 51.45,
       "dur": 0.6,
       "on": [
-        ".col-ctl",
-        ".panel.rating"
+        "#stage",
+        ".panel.aline"
       ],
-      "a": 0.6
+      "a": 0.55
     },
     {
-      "t": 61.1,
+      "t": 56.29,
       "dur": 0.6,
       "on": [
-        ".panel.rating"
+        ".panel.aline",
+        "#bfilm"
       ],
-      "a": 0.6
+      "a": 0.55
     },
     {
-      "t": 67.9,
+      "t": 61.22,
+      "dur": 0.6,
+      "on": [
+        ".panel.aline",
+        "#bfilm"
+      ],
+      "a": 0.55
+    },
+    {
+      "t": 66.23,
+      "dur": 0.6,
+      "on": [
+        ".panel.aline",
+        "#bfilm"
+      ],
+      "a": 0.55
+    },
+    {
+      "t": 71.98,
+      "dur": 0.6,
+      "on": [
+        "#bfilm",
+        ".panel.aline"
+      ],
+      "a": 0.55
+    },
+    {
+      "t": 77.88,
       "dur": 0.6,
       "off": true
     },
     {
-      "t": 79.9,
+      "t": 93.65,
       "dur": 0.6,
       "on": [
-        "#film"
+        "#stage",
+        ".panel.pen"
       ],
-      "a": 0.7
+      "a": 0.55
     },
     {
-      "t": 91,
-      "dur": 1.2,
+      "t": 98.99,
+      "dur": 0.6,
       "off": true
     }
   ],
   "captions": [
     {
       "t": 0.3,
-      "d": 8.5,
+      "d": 4.77,
       "zh": "这道黑影，是一颗 13 毫米的胆结石投下的。",
       "en": "This dark stripe is cast by a gallstone, 13 millimetres across.",
       "say": {
@@ -398,44 +203,44 @@
       }
     },
     {
-      "t": 9.6,
-      "d": 6,
+      "t": 5.62,
+      "d": 3.54,
       "zh": "拍下它的，不是 X 光，而是声音。",
       "en": "No X-rays made this picture. Only sound."
     },
     {
-      "t": 16.4,
-      "d": 6.4,
+      "t": 12.11,
+      "d": 3.57,
       "zh": "整台超声机，就装在这只探头里。",
       "en": "The whole scanner fits inside this probe."
     },
     {
-      "t": 23.6,
-      "d": 4.3,
+      "t": 16.23,
+      "d": 2.72,
       "zh": "插在手机上，就能用。",
       "en": "Plug it into a phone, and it works."
     },
     {
-      "t": 28.7,
-      "d": 8.5,
+      "t": 20.9,
+      "d": 5.06,
       "zh": "剖开探头的前端，最外面是一层硅胶声透镜。",
       "en": "Cut open the nose. On the outside sits a silicone lens."
     },
     {
-      "t": 38,
-      "d": 9.3,
+      "t": 26.51,
+      "d": 5.75,
       "zh": "透镜下面是两层匹配层，再下面，是一排压电晶片。",
       "en": "Under it are two matching layers, and under those, a row of piezo crystals."
     },
     {
-      "t": 48.1,
-      "d": 8.9,
+      "t": 32.81,
+      "d": 4.64,
       "zh": "晶片后面的背衬块，让每一次振动很快停下来。",
       "en": "The backing block behind them makes every ring stop fast."
     },
     {
-      "t": 57.8,
-      "d": 8.9,
+      "t": 39.4,
+      "d": 5.36,
       "zh": "通上电，晶片一震，就发出 3.5 兆赫的声脉冲。",
       "en": "A voltage kicks the crystals, and they ring out a 3.5 megahertz pulse.",
       "say": {
@@ -444,20 +249,20 @@
       }
     },
     {
-      "t": 67.5,
-      "d": 10.2,
+      "t": 45.31,
+      "d": 5.59,
       "zh": "每个晶片都晚一点点出发，声波就汇聚到同一个焦点。",
       "en": "Each crystal fires a little later than the next, so the waves meet at one focus."
     },
     {
-      "t": 78.5,
-      "d": 8.1,
+      "t": 51.45,
+      "d": 4.29,
       "zh": "声音每遇到一层组织，就弹回来一点回声。",
       "en": "Every boundary in the body sends a little echo back."
     },
     {
-      "t": 87.4,
-      "d": 6.8,
+      "t": 56.29,
+      "d": 4.38,
       "zh": "机器假定声速是每秒 1540 米。",
       "en": "The scanner assumes sound travels 1540 metres a second.",
       "say": {
@@ -466,8 +271,8 @@
       }
     },
     {
-      "t": 95,
-      "d": 7.7,
+      "t": 61.22,
+      "d": 4.46,
       "zh": "所以回声晚 13 微秒，就是深了 1 厘米。",
       "en": "So an echo 13 microseconds later means 1 centimetre deeper.",
       "say": {
@@ -476,8 +281,8 @@
       }
     },
     {
-      "t": 103.5,
-      "d": 9.3,
+      "t": 66.23,
+      "d": 5.2,
       "zh": "结石在 7 厘米深的地方，回声 91 微秒就回来了。",
       "en": "The stone is 7 centimetres down. Its echo is back in 91 microseconds.",
       "say": {
@@ -486,14 +291,14 @@
       }
     },
     {
-      "t": 113.6,
-      "d": 9.3,
+      "t": 71.98,
+      "d": 5.35,
       "zh": "声音过不去结石，下面就没有回声，只剩一道黑影。",
       "en": "Sound cannot get through the stone. Below it there is no echo, only a shadow."
     },
     {
-      "t": 123.7,
-      "d": 8.5,
+      "t": 78.68,
+      "d": 5.11,
       "zh": "一条线接一条线扫过去，一秒钟能画 38 张。",
       "en": "Line after line sweeps across, 38 pictures every second.",
       "say": {
@@ -502,8 +307,8 @@
       }
     },
     {
-      "t": 133,
-      "d": 8.9,
+      "t": 85.94,
+      "d": 7.16,
       "zh": "换成 9 兆赫，波长只有 0.17 毫米，画面更细。",
       "en": "Switch to 9 megahertz. The wavelength drops to 0.17 millimetres, and the picture gets finer.",
       "say": {
@@ -512,8 +317,8 @@
       }
     },
     {
-      "t": 142.7,
-      "d": 8.9,
+      "t": 93.65,
+      "d": 4.79,
       "zh": "但是声音衰减得更快，7 厘米以下就看不见了。",
       "en": "But the sound fades faster, and below 7 centimetres there is nothing left.",
       "say": {
@@ -522,8 +327,8 @@
       }
     },
     {
-      "t": 152.4,
-      "d": 9.3,
+      "t": 100.99,
+      "d": 5.42,
       "zh": "在 CT 上，很多结石和胆汁几乎一样，常常被漏掉。",
       "en": "On CT, many gallstones look almost like bile, and they are often missed.",
       "say": {
@@ -531,20 +336,20 @@
       }
     },
     {
-      "t": 162.5,
-      "d": 8.1,
+      "t": 106.96,
+      "d": 4.87,
       "zh": "超声也有盲区，声音穿不过充满空气的肺。",
       "en": "Ultrasound has a blind spot too. Sound cannot cross the air in the lungs."
     },
     {
-      "t": 171.4,
-      "d": 10.2,
+      "t": 112.38,
+      "d": 5.34,
       "zh": "回到这颗结石，下面那道黑影，就是声音过不去的地方。",
       "en": "Back to the stone. The shadow below is where the sound could not go."
     },
     {
-      "t": 182.4,
-      "d": 7.7,
+      "t": 118.57,
+      "d": 4.58,
       "zh": "剖面影像工坊，让看不见的原理被看见。",
       "en": "Cutaway Works. Making the invisible visible."
     }

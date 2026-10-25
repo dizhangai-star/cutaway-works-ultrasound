@@ -14,6 +14,8 @@ import { createDrawings } from './render/drawings.js';
 import { createInstruments } from './ui/instruments.js';
 import { dim, centre, label } from './ui/dims.js';
 import { createClock } from './film.js';
+import { loadDemo, createDemo } from './demo.js';
+import { setAt, viewAt } from './demo-plan.js';
 import { createLayout } from './layout.js';
 import { bindSlider, bindFader, bindOrbit } from './ui/controls.js';
 import { createSim, bmode, scanConvert, sectorPx, toXY, PROBE, PH, delays, penetration, lambda, useShot } from './sim.js';
@@ -25,6 +27,9 @@ import { explodeGroups, explodeFrame } from './build/parts.js';
 const Q = new URLSearchParams(location.search);
 document.documentElement.classList.toggle('rec', Q.has('film'));
 initTheme('dark');
+// the scripted demo (S5): on for the real render (render.mjs passes shot=main) or with ?demo
+const DEMO = Q.has('film') && (Q.get('shot') === 'main' || Q.has('demo')) ? await loadDemo() : null;
+document.documentElement.classList.toggle('demo', !!DEMO);
 await initI18n(Q.get('lang') || 'en');
 
 // ── renderer ────────────────────────────────────────────────────────────────
@@ -117,6 +122,7 @@ onLang(() => { drawings.redrawOverlays(); bmarksKey = ''; });
 const DEF = { f: 3.5, lin: false, depth: 160, focus: 70, gain: 0, dr: 60, tgc: [0, 0, 0, 0] };
 const P = { ...DEF, tgc: [...DEF.tgc] };
 const log = [];
+if (DEMO) log.push(...DEMO.sim.map((c) => ({ ...c })));  // the demo's whole timeline, known in advance
 let sim;
 function reset() { sim = createSim({ ...DEF, tgc: [...DEF.tgc] }); }
 const apply = (c) => (c.k === 'set' ? sim.set(c.p, c.v) : sim[c.k]());
@@ -182,15 +188,16 @@ function viewState(tt) {
   const u = smooth(vs.t0, vs.t0 + 1.1, tt);
   // Overview opens the probe once the camera has arrived; leaving it, the parts close before the camera moves
   const leave = vs.prev === 'housing' && ui.view !== 'housing';
+  const fo0 = vs.prev === 'section' ? 0.8 : 0.1;            // from Use, the film first shrinks back, then slides out
   const e = ui.view === 'housing' ? smooth(vs.t0 + 1.0, vs.t0 + 2.6, tt) : leave ? 1 - smooth(vs.t0, vs.t0 + 0.6, tt) : 0;
   const pose = viewPose(VIEWS[vs.prev], VIEWS[ui.view], leave ? smooth(vs.t0 + 0.5, vs.t0 + 1.6, tt) : u);
   return { pose, e, callA: ui.view !== 'housing' ? smooth(vs.t0 + 0.7 + (leave ? 0.5 : 0), vs.t0 + 1.2 + (leave ? 0.5 : 0), tt) : 0,
     waveA: ui.view === 'beam' ? smooth(vs.t0 + 0.8, vs.t0 + 1.4, tt) : vs.prev === 'beam' ? 1 - smooth(vs.t0, vs.t0 + 0.4, tt) : 0,
     splitA: ui.view === 'array' ? smooth(vs.t0 + 0.8, vs.t0 + 1.6, tt) : vs.prev === 'array' ? 1 - smooth(vs.t0, vs.t0 + 0.4, tt) : 0,
-    filmOut: ui.view === 'housing' ? smooth(vs.t0 + 0.1, vs.t0 + 0.9, tt) : leave ? 1 - smooth(vs.t0 + 0.5, vs.t0 + 1.2, tt) : 0,
+    filmOut: ui.view === 'housing' ? smooth(vs.t0 + fo0, vs.t0 + fo0 + 0.8, tt) : leave ? 1 - smooth(vs.t0 + 0.5, vs.t0 + 1.2, tt) : 0,
     labelA: ui.view === 'housing' ? smooth(vs.t0 + 2.3, vs.t0 + 2.8, tt) : 0,
     useA: ui.view === 'section' ? smooth(vs.t0 + 0.2, vs.t0 + 1.8, tt) : vs.prev === 'section' ? 1 - smooth(vs.t0, vs.t0 + 0.8, tt) : 0,
-    useMark: ui.view === 'section' ? smooth(vs.t0 + 1.8, vs.t0 + 2.4, tt) : 0 };
+    useMark: ui.view === 'section' ? smooth(vs.t0 + 1.8, vs.t0 + 2.4, tt) : vs.prev === 'section' ? 1 - smooth(vs.t0, vs.t0 + 0.3, tt) : 0 };
 }
 const toggle = (k, on = !ui[k]) => { ui[k] = on; document.querySelector(`[data-act="${k}"]`).classList.toggle('on', on); };
 const resetOrbit = () => { ui.orbit = { az: 0, el: 0, zoom: 1 }; };
@@ -242,6 +249,7 @@ window.__plate = { set: setParam, tgc: setTgc, resetAll, freeze: () => cmd('free
 // ── layout ──────────────────────────────────────────────────────────────────
 const stage = document.getElementById('stage');
 const L = createLayout({ plates: [...document.querySelectorAll('.plate')], renderer, onChange: () => { bimgKey = ''; clock?.film && clock.redraw(); } });
+const demo = DEMO && createDemo(DEMO, { L, lang: Q.get('lang') || 'en' });
 onLang(() => L.apply());
 document.fonts.ready.then(() => L.apply());
 
@@ -438,9 +446,12 @@ function callouts(V, rect, sr, s) {
 
 // ── one frame ───────────────────────────────────────────────────────────────
 function frame(tt) {
+  if (DEMO) demo.camera(tt);                                 // the film camera first: every renderer reads its scale
   const S = state(tt);
+  if (DEMO) demoView(tt);
   const V = viewState(tt);
-  applyCut(ui.view !== 'housing');
+  // the cut closes / opens halfway through the camera move, so the step rides on the motion
+  applyCut(ui.view === 'housing' ? tt - vs.t0 < 0.55 : vs.prev !== 'housing' || tt - vs.t0 > 0.55);
   hero.setView(V.pose);
   explode.apply(V.e);
   fx.update({ th: S.stone.th, on: ui.view === 'housing' || ui.view === 'array' ? 0 : 1, t: S.frozen ? 0.95 : tt });
@@ -475,9 +486,17 @@ function frame(tt) {
   drawings.render(vh, s);
   inst.draw(S, theme(), s);
   drawUI(S);
+  if (DEMO) demo.overlays(tt);
 }
-// camera drift: the 5 s clip turns slowly; live, a ±3° sway
-const driftAt = (t) => (clock?.film ? { az: -2 + t * 0.8, zoom: 1 + t * 0.004 } : { az: 3 * Math.sin(t * 0.15), zoom: 1 });
+// the demo's view schedule and set values at t (pure: seeking replays them)
+function demoView(tt) {
+  const v = viewAt(DEMO, tt);
+  if (ui.view !== v.view) document.querySelectorAll('.views button').forEach((b) => b.classList.toggle('on', b.dataset.view === v.view));
+  ui.view = v.view; Object.assign(vs, { prev: v.prev, t0: v.t0 });
+  Object.assign(P, setAt(DEMO.sim, tt, DEF));
+}
+// camera drift: the 5 s clip turns slowly; the demo (and live) sways ±3° so long films do not wander off
+const driftAt = (t) => (clock?.film && !DEMO ? { az: -2 + t * 0.8, zoom: 1 + t * 0.004 } : { az: 3 * Math.sin(t * 0.15), zoom: 1 });
 
 let rate = 1;
 clock = createClock(frame, { isLoaded: () => document.fonts.status === 'loaded' && !!B, rate: () => (rate += ((ui.slow ? 0.04 : 1) - rate) * 0.12) });
