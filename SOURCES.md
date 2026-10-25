@@ -38,3 +38,10 @@ Not on the page → *modelled* until a document is found: element count (128 per
 |---|---|---|
 | CT sensitivity for gallstones | ≈ 39 % vs 83 % for ultrasound; up to 57 % of stones isoattenuating to bile | ARRS 2023 abstract E2259 (conference abstract: say "many", not the number, unless a journal source is found) |
 | Ultrasound sensitivity | 0.85, specificity 1 vs histopathology | retrospective study (PMC, S3 to pin) |
+
+## S4 · Narration claims (S5)
+
+| Item | Value | Source |
+|---|---|---|
+| Probe runs on a phone (script line 4) | Lumify transducer + Lumify app on a compatible Android / iOS smart device | S1 product page (Philips Lumify system description) |
+| Air blocks ultrasound (script line 19) | soft tissue / air impedance ratio ≈ 1.6 MRayl / 0.0004 MRayl: reflection ≈ 99.9 %, so aerated lung is not imaged | standard acoustics; Szabo, *Diagnostic Ultrasound Imaging: Inside Out*, ch. 3 (page to pin) |
