@@ -63,6 +63,8 @@
   "b.gb": "胆囊",
   "b.stone": "结石",
   "b.shadow": "声影",
+  "u.stone": "结石 Ø {dia} mm\n深 {d} cm · 回声 {us} µs",
+  "u.shadow": "声影 宽 {w} mm @ {at} cm\n声音过不去",
   "b.kidney": "肾",
   "b.liver": "肝",
   "dwg.front": "1 · 正视 · 扇区几何",

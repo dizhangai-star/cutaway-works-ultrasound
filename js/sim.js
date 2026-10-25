@@ -64,6 +64,11 @@ export function stoneLine() {
   const [th, d] = toPolar(PH.stone.x, PH.stone.y);
   return { th, d: d - PH.stone.r };
 }
+/** view 5 Use: the stone's size, depth, echo time and the shadow it casts (the beams diverge from the sector apex) */
+export function useShot(at = 105) {
+  const st = stoneLine(), dia = 2 * PH.stone.r;
+  return { ...st, dia, us: roundTrip(st.d), at, shadowW: dia * (PROBE.roc + at) / (PROBE.roc + PH.stone.y) };
+}
 
 // ── pulse and spectrum ─────────────────────────────────────────────────────────
 const sigT = (f, bw = PROBE.bw) => Math.sqrt(2 * Math.log(2)) / (Math.PI * f * bw);   // µs, −6 dB band = bw·f

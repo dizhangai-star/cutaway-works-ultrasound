@@ -26,7 +26,7 @@ Interactive landscape "technical plate" (1440×900) of **Ultrasound Probe**, one
 - [x] Sprint 3 · Solver 与仪表 (`s3-solver`, signed + merged 2026-10-25, PR #5): white point frozen (`REF` 18.8, gain moves the picture: +6 dB = +6.0 dB tested); bile α 0.2 → 0.05 (bile ≈ water), posterior enhancement 4.4 → 7.0 dB; shadow width 16.5 mm at 10.5 cm = stone Ø 13 × sector divergence (tested); hook reconciled to 13 mm; readings 91 µs / 7.0 cm / 0.44 mm / 38 fps / 17 cm; tests 10/10; DAS not done (beam model stays)
 - [ ] Sprint 4 · 晒图、视图、标注、用途镜头 (split a / b as ct)
   - [x] 4a · 视图 (`s4a-views`, signed 2026-10-25): Overview = film slides out + 5-group explode (`build/parts.js`: shells along the joint, board, heat spreader, cable; nose + stack stay), labels left / right by screen side; Pulse = 64 wavelets each at its `sim.delays` delay, the focused front is their envelope, focus mark; Freq. = film split, right half = `bmode` at 9 MHz (λ 0.17 mm, reach 7 vs 17 cm arcs); hero scan line + link hidden in Freq.; z-fighting fix (shadow plane 0.2 mm under the block, near 0.05); tests 10/10
-  - [ ] 4b · 用途镜头 (view 5: phantom organs in the block or not, push in on the film, stone + shadow called out)
+  - [ ] 4b · 用途镜头 (`s4b-use`, built 2026-10-25, waiting for sign-off): user chose **no phantom organs** (Codex paint-overs `shots/s4b-organs/` showed them hidden behind the film); view 5 = film pushed in ×1.45 toward the stage centre over 1.6 s, then a red ring on the stone + shadow dimension line, numbers from `sim.useShot()` (Ø 13 mm · 7.0 cm · 91 µs; shadow 15.9 mm @ 10.5 cm, geometric); stone/shadow labels fade, probe callouts + link hide; stills `out/review/s4b-use-*`; tests 10/10
 - [ ] Sprint 5 · 口播稿 → 口播 → 演示录制
 - [ ] Sprint 6 · 声音、混音、渲染
 - [ ] Sprint 7 · 交付与投放
@@ -42,7 +42,7 @@ Interactive landscape "technical plate" (1440×900) of **Ultrasound Probe**, one
 
 - S4a: Overview still hides the acoustic stack inside the nose; cable label anchor sits beside the cable. Freq. split shows 9 vs 9 if the 9 MHz toggle is on.
 
-- S2a: phantom organs (liver, gallbladder, stone, kidney) not modelled: the slice reaches 14 cm, the bench block is 46 mm deep; decide in S4 (use shot).
+- S4b: shadow width — geometric 15.9 mm (`useShot`) vs 16.5 mm measured in S3; narration quotes the computed 15.9 (or ≈ 16 mm).
 - 2026-10-25 (user, S2b): probe stays upright; the cable shows only in the zoomed-out housing view.
 - S2b: housing keeps a faint cream cast under the warm key (NeutralToneMapping).
 

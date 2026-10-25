@@ -16,7 +16,7 @@ import { dim, centre, label } from './ui/dims.js';
 import { createClock } from './film.js';
 import { createLayout } from './layout.js';
 import { bindSlider, bindFader, bindOrbit } from './ui/controls.js';
-import { createSim, bmode, scanConvert, sectorPx, toXY, PROBE, PH, delays, penetration, lambda } from './sim.js';
+import { createSim, bmode, scanConvert, sectorPx, toXY, PROBE, PH, delays, penetration, lambda, useShot } from './sim.js';
 import { createCallouts } from './ui/callouts.js';
 import { createExplode } from './render/explode.js';
 import { explodeGroups, explodeFrame } from './build/parts.js';
@@ -187,7 +187,9 @@ function viewState(tt) {
     waveA: ui.view === 'beam' ? smooth(vs.t0 + 0.8, vs.t0 + 1.4, tt) : vs.prev === 'beam' ? 1 - smooth(vs.t0, vs.t0 + 0.4, tt) : 0,
     splitA: ui.view === 'array' ? smooth(vs.t0 + 0.8, vs.t0 + 1.6, tt) : vs.prev === 'array' ? 1 - smooth(vs.t0, vs.t0 + 0.4, tt) : 0,
     filmOut: ui.view === 'housing' ? smooth(vs.t0 + 0.1, vs.t0 + 0.9, tt) : leave ? 1 - smooth(vs.t0 + 0.5, vs.t0 + 1.2, tt) : 0,
-    labelA: ui.view === 'housing' ? smooth(vs.t0 + 2.3, vs.t0 + 2.8, tt) : 0 };
+    labelA: ui.view === 'housing' ? smooth(vs.t0 + 2.3, vs.t0 + 2.8, tt) : 0,
+    useA: ui.view === 'section' ? smooth(vs.t0 + 0.2, vs.t0 + 1.8, tt) : vs.prev === 'section' ? 1 - smooth(vs.t0, vs.t0 + 0.8, tt) : 0,
+    useMark: ui.view === 'section' ? smooth(vs.t0 + 1.8, vs.t0 + 2.4, tt) : 0 };
 }
 const toggle = (k, on = !ui[k]) => { ui[k] = on; document.querySelector(`[data-act="${k}"]`).classList.toggle('on', on); };
 const resetOrbit = () => { ui.orbit = { az: 0, el: 0, zoom: 1 }; };
@@ -248,8 +250,9 @@ function filmGeom() { const W = film.offsetWidth, H = film.offsetHeight; return 
 /** sector (x, y mm below the skin) → film plate px */
 const toFilm = (g, x, y) => [g.W / 2 + x / g.px, TOP + y / g.px];
 function drawFilm(S, V, tt) {
-  if (!B) return;
-  const g = filmGeom(), k = Math.min(window.devicePixelRatio || 1, 2) * L.scale, W = Math.round(g.W * k), H = Math.round(g.H * k);
+  if (!B || !film.offsetWidth) return;
+  const g = filmGeom(), k = Math.min(window.devicePixelRatio || 1, 2) * L.scale * (V.useA > 0 ? USEZ : 1), W = Math.round(g.W * k), H = Math.round(g.H * k);
+  if (!W || !H) return;
   const key = `${bKey}-${S.dr}-${W}-${H}`;
   if (key !== bimgKey) {
     off = document.createElement('canvas'); off.width = W; off.height = H;
@@ -268,6 +271,7 @@ function drawFilm(S, V, tt) {
   }
   if (V.splitA > 0) split(c, g, S, V.splitA, k, W, H);
   if (V.waveA > 0) wavelets(c, g, S, V.waveA, tt);
+  if (V.useMark > 0) useMarks(c, g, V.useMark);
   // transmit focus: a small red mark on the right edge at the focal depth, as on a scanner
   const fy = TOP + S.focus / g.px;
   if (S.focus < B.depth) { c.fillStyle = 'rgba(255, 58, 50, 0.95)'; c.beginPath(); c.moveTo(g.W - 34, fy); c.lineTo(g.W - 27, fy - 4); c.lineTo(g.W - 27, fy + 4); c.fill(); }
@@ -341,6 +345,28 @@ function wavelets(c, g, S, a, tt) {
   c.textAlign = 'right'; c.fillText(`${t('w.focus')} ${num(S.focus / 10, 1)} cm · 64 ${t('w.el')}`, qx - 86, qy + 29);
   c.restore();
 }
+// view 5 Use: the film pushed in on the stone; the ring and the shadow's width, both from sim.useShot
+const USEZ = 1.45;
+function useMarks(c, g, a) {
+  const U = useShot(), [sx, sy] = toFilm(g, PH.stone.x, PH.stone.y), r = PH.stone.r / g.px + 4;
+  const fill = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => o[k]);
+  c.save(); c.globalAlpha = a; c.strokeStyle = 'rgba(255, 58, 50, 0.95)'; c.lineWidth = 1.2;
+  c.beginPath(); c.arc(sx, sy, r, 0, 2 * Math.PI); c.stroke();
+  // shadow width: a dimension line across the black column at U.at, centred on the stone's line
+  const [cx, y] = toFilm(g, ...toXY(U.th, U.at)), hw = U.shadowW / 2 / g.px;
+  c.beginPath(); c.moveTo(cx - hw, y); c.lineTo(cx + hw, y);
+  for (const e of [-1, 1]) { c.moveTo(cx + e * hw, y - 5); c.lineTo(cx + e * hw, y + 5); c.moveTo(cx + e * hw, y); c.lineTo(cx + e * (hw - 4), y - 3); c.moveTo(cx + e * hw, y); c.lineTo(cx + e * (hw - 4), y + 3); }
+  c.stroke();
+  c.font = '500 9px "IBM Plex Mono", "Noto Sans SC", monospace';
+  const tag = (txt, x, ty, al) => txt.split('\n').forEach((ln, i) => {
+    const yy = ty + i * 14; c.textAlign = al; const w = c.measureText(ln).width, bx = al === 'right' ? x - w - 4 : x - 4;
+    c.fillStyle = 'rgba(6, 10, 16, 0.82)'; c.fillRect(bx, yy - 10, w + 8, 14); c.fillStyle = 'rgba(255, 120, 110, 1)'; c.fillText(ln, x, yy);
+  });
+  c.beginPath(); c.moveTo(sx + r * 0.7, sy - r * 0.7); c.lineTo(sx + r + 16, sy - r - 14); c.stroke();
+  tag(fill(t('u.stone'), { dia: num(U.dia, 0), d: num(U.d / 10, 1), us: num(U.us, 0) }), sx + r + 20, sy - r - 11, 'left');
+  tag(fill(t('u.shadow'), { w: num(U.shadowW, 1), at: num(U.at / 10, 1) }), cx - hw - 10, y + 4, 'right');
+  c.restore();
+}
 function marks(g) {
   bmarksKey = `${bimgKey}-${document.documentElement.lang}`;
   // depth ruler: along the centre line, a tick per cm, a number per 5 cm
@@ -404,7 +430,7 @@ function callouts(V, rect, sr, s) {
   const at = (p) => { const q = hero.project(p, rect); return [(q.x - sr.left) / s, (q.y - sr.top) / s]; };
   if (V.labelA > 0 && w > 0) return CO.labels(explode.groups.map((g) => { const p = at(explode.anchor(g)); return { id: g.key, text: t(g.key), at: p, side: p[0] < w * 0.5 ? -1 : 1 }; }), { w, h, a: V.labelA, top: 60, bottom: h - 60, inset: 12 });
   if (!(V.callA > 0 && w > 0)) return CO.hide();
-  CO.labels(LABELS.map((b) => ({ ...b, text: t(b.key), at: at(b.local) })), { w, h, a: V.callA, top: 24, bottom: h - film.offsetTop + 8, inset: 12 });
+  CO.labels(LABELS.map((b) => ({ ...b, text: t(b.key), at: at(b.local) })), { w, h, a: V.callA * (1 - V.useA), top: 24, bottom: h - film.offsetTop + 8, inset: 12 });
 }
 
 // ── one frame ───────────────────────────────────────────────────────────────
@@ -430,7 +456,16 @@ function frame(tt) {
   film.style.transform = fo > 0 ? `translateY(${(fo * 105).toFixed(2)}%)` : '';
   film.style.opacity = fo > 0 ? String(1 - fo) : '';
   film.style.visibility = fo >= 1 ? 'hidden' : '';
-  link.style.opacity = String(1 - Math.max(fo, V.splitA));
+  // Use: the film grows toward the stage centre, the stone's own labels give way to the computed ones
+  const ua = V.useA;
+  if (ua > 0 && fo === 0) {
+    const ez = 1 + (USEZ - 1) * ua, fw = film.offsetWidth, fh = film.offsetHeight;
+    const dx = (stage.offsetWidth / 2 - (film.offsetLeft + fw / 2)) * ua, dy = (stage.offsetHeight * 0.56 - (film.offsetTop + fh / 2)) * ua;
+    film.style.transform = `translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px) scale(${ez.toFixed(4)})`;
+    film.style.zIndex = '3';
+  } else if (fo === 0) film.style.zIndex = '';
+  bmarks.style.opacity = String(1 - 0.9 * V.useMark);
+  link.style.opacity = String(1 - Math.max(fo, V.splitA, ua));
   if (fo < 1) drawFilm(S, V, tt);
   drawLink(S, rect, sr, s);
   if (V.e > 0) explode.apply(0);                             // the drawings show the assembled probe
