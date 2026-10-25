@@ -18,6 +18,7 @@ import { createLayout } from './layout.js';
 import { bindSlider, bindFader, bindOrbit } from './ui/controls.js';
 import { createSim, bmode, scanConvert, sectorPx, toXY, PROBE, PH, delays, penetration, lambda, useShot } from './sim.js';
 import { createCallouts } from './ui/callouts.js';
+import { initBg } from './ui/bg.js';
 import { createExplode } from './render/explode.js';
 import { explodeGroups, explodeFrame } from './build/parts.js';
 
@@ -218,6 +219,7 @@ document.querySelector('[data-act="sound"]').onclick = () => toggle('sound');
 document.querySelector('[data-act="reset"]').onclick = resetAll;
 document.querySelector('[data-act="theme"]').onclick = () => toggleTheme();
 document.querySelector('[data-act="lang"]').onclick = () => toggleLang();
+const BG = initBg();
 const KEYVIEW = ['housing', 'cutaway', 'beam', 'array', 'section'];
 window.addEventListener('keydown', (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey || e.target.closest?.('[role="slider"]')) return;
@@ -226,6 +228,7 @@ window.addEventListener('keydown', (e) => {
   else if (e.key === 's' || e.key === 'S') toggle('slow');
   else if (e.key === 't' || e.key === 'T') toggleTheme();
   else if (e.key === 'l' || e.key === 'L') toggleLang();
+  else if ((e.key === 'b' || e.key === 'B') ) BG.cycle();
   else if (e.key === 'm' || e.key === 'M') toggle('sound');
   else if (e.key === 'r' || e.key === 'R') resetAll();
 });
