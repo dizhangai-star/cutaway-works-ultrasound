@@ -42,7 +42,7 @@ export function createHero(renderer, subject) {
   scene.add(inner);
 
   const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.2), new THREE.ShadowMaterial({ color: 0x000000, opacity: 0.5 }));
-  shadow.rotation.x = -Math.PI / 2; shadow.position.y = DIM.floor; shadow.receiveShadow = true;
+  shadow.rotation.x = -Math.PI / 2; shadow.position.y = DIM.floor - 0.0002; shadow.receiveShadow = true;   // 0.2 mm under the block's base: never coplanar (z-fighting)
   scene.add(shadow);
   const contact = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.14), new THREE.MeshBasicMaterial({ map: radialTexture(), transparent: true, depthWrite: false, opacity: 0.8, color: 0x000000 }));
   contact.rotation.x = -Math.PI / 2; contact.position.set(0, DIM.floor + 0.0005, 0); contact.renderOrder = -1;
@@ -51,7 +51,7 @@ export function createHero(renderer, subject) {
   scene.add(subject);
   subject.traverse((o) => { const m = o.material; if (m?.userData?.env != null && !m.envMap) { m.envMap = scene.environment; m.envMapIntensity = scene.environmentIntensity * m.userData.env; } });
 
-  const camera = new THREE.PerspectiveCamera(20, 1, 0.01, 10);
+  const camera = new THREE.PerspectiveCamera(20, 1, 0.05, 10);
   const T0 = new THREE.Vector3(0, 0.035, 0), target = T0.clone();
   let view = VIEWS.cutaway, dist = 1, ppm = 1000, extra = { az: 0, el: 0, zoom: 1 };
 
