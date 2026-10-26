@@ -1,15 +1,79 @@
 {
-  "note": "Posters (tools/poster.mjs): frames grabbed from the finished film at film time t (× rate), cropped [x, y, w, h] in 1920×1080 frame pixels (above the caption line), placed at [x, y, w] on the poster. Title [x, y, maxWidth, fontSize]; <em> = accent colour. Pick the hero at its most colourful moment and the use-shot result at its highest contrast; the subtitle must not contradict the image.",
+  "note": "Posters (tools/poster.mjs): frames grabbed from the finished film at film time t (× rate), cropped [x, y, w, h] in 1920×1080 frame pixels, placed at [x, y, w] on the poster. Titles per language. 'tube' = hero (stack cut), 'film' = use shot.",
   "video": "out/ultrasound.{lang}.mp4",
-  "rate": 1.15,
-  "frames": { "tube": 55, "film": 82 },
-  "crops": { "tube": [100, 40, 1260, 940], "film": [568, 54, 788, 926] },
+  "rate": 1,
+  "frames": {
+    "tube": 31,
+    "film": 116
+  },
+  "crops": {
+    "tube": [
+      340,
+      20,
+      1240,
+      470
+    ],
+    "film": [
+      350,
+      250,
+      1100,
+      690
+    ]
+  },
   "text": {
-    "zh": { "title": "钩子问题，<em>结果</em>？", "sub": "B超探头 · 数字 · 数字 · 数字", "tag": "剖面影像工坊 · 第 NN 期" },
-    "en": { "title": "Hook question, <em>result</em>?", "sub": "Ultrasound Probe · number · number · number", "tag": "CUTAWAY WORKS · No. NN" }
+    "zh": {
+      "title": "胆结石，怎么用<em>声音</em>拍出来？",
+      "sub": "B超探头 · 3.5 MHz · 回声 91 µs · 结石 Ø 13 mm",
+      "tag": "剖面影像工坊 · 第 03 期"
+    },
+    "en": {
+      "title": "How does <em>sound</em> photograph a gallstone?",
+      "sub": "Ultrasound probe · 3.5 MHz · echo 91 µs · stone Ø 13 mm",
+      "tag": "CUTAWAY WORKS · No. 03"
+    }
   },
   "sizes": {
-    "16x9": { "w": 1920, "h": 1080, "title": [72, 56, 1100, 76], "tube": [-10, 196, 1180], "film": [1160, 120, 720], "tag": "right" },
-    "3x4": { "w": 1080, "h": 1440, "title": [56, 64, 968, 72], "tube": [-20, 300, 1120], "film": [590, 820, 440], "tag": "left" }
+    "16x9": {
+      "w": 1920,
+      "h": 1080,
+      "title": [
+        72,
+        56,
+        1100,
+        76
+      ],
+      "tube": [
+        -60,
+        250,
+        1050
+      ],
+      "film": [
+        860,
+        250,
+        1030
+      ],
+      "tag": "right"
+    },
+    "3x4": {
+      "w": 1080,
+      "h": 1440,
+      "title": [
+        56,
+        64,
+        968,
+        72
+      ],
+      "tube": [
+        -20,
+        260,
+        1120
+      ],
+      "film": [
+        80,
+        760,
+        920
+      ],
+      "tag": "left"
+    }
   }
 }
