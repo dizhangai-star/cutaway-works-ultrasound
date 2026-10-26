@@ -41,7 +41,7 @@ const html = (S, T, img) => `<!doctype html><meta charset="utf-8">
   .film{left:${S.film[0]}px;top:${S.film[1]}px;width:${S.film[2]}px;outline:2px solid ${TOK.ink};outline-offset:6px;
     box-shadow:0 0 80px rgba(216,230,238,0.18)}
   .title{position:absolute;left:${S.title[0]}px;top:${S.title[1]}px;width:${S.title[2]}px;color:${TOK.ink};
-    font:900 ${S.title[3]}px/1.12 "Barlow Condensed","Noto Sans SC",sans-serif;letter-spacing:0.01em}
+    font:900 ${S.title[3]}px/1.12 "Barlow Condensed","Noto Sans SC",sans-serif;letter-spacing:0.01em;text-shadow:0 4px 24px rgba(0,0,0,0.85)}
   .title em{font-style:normal;color:${TOK.red}}
   .sub{margin-top:18px;font:500 ${Math.round(S.title[3] * 0.34)}px/1.3 "IBM Plex Mono","Noto Sans SC",monospace;color:${TOK.dim};letter-spacing:0.04em}
   .tag{position:absolute;${S.tag === 'left' ? 'left' : 'right'}:40px;bottom:30px;font:600 ${Math.round(S.title[3] * 0.32)}px "Barlow Condensed","Noto Sans SC",sans-serif;
